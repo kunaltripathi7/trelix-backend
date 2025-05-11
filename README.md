@@ -38,3 +38,9 @@ Trelix is a collaborative productivity platform designed for remote teams. This 
    ```bash
    git clone https://github.com/your-username/trelix-backend.git
    cd trelix-backend
+
+
+
+
+[Eraser DB Trelix](https://app.eraser.io/workspace/cKEDj34DX1uLgQPNa98N?origin=share)
+![image](https://github.com/user-attachments/assets/9715afe4-646c-41e9-9204-fb3262a7686f)
