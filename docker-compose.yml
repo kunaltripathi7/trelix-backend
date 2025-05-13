@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: trelix-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345678
+      POSTGRES_DB: trelix
+    ports:
+      - "5432:5432"
+    volumes:
+      - trelix_db_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: trelix-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@trelix.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  trelix_db_data:
