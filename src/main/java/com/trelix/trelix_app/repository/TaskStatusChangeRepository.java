@@ -11,7 +11,7 @@ public interface TaskStatusChangeRepository extends JpaRepository<TaskStatusChan
 
     List<TaskStatusChange> findByTaskId(UUID taskId);
 
-    List<TaskStatusChange> findByChangeId(UUID userId);
+    List<TaskStatusChange> findByChangedById(UUID userId);
 
-    List<TaskStatusChange> findByChangeBetween(LocalDateTime start, LocalDateTime end);
+    List<TaskStatusChange> findByChangedAtBetween(LocalDateTime start, LocalDateTime end);
 }

@@ -20,7 +20,7 @@ public class Attachment {
     private Long fileSize;
     private String url;
 
-    @ManyToOne @JoinColumn(name = "uploaded_by", nullable = false)
+    @ManyToOne @JoinColumn(name = "uploaded_by", referencedColumnName = "user_id", nullable = false)
     private User uploadedBy;
 
     @ManyToOne @JoinColumn(name = "task_id")

@@ -7,7 +7,7 @@ import java.util.UUID;
 import java.util.List;
 
 public interface MessageCommentRepository extends JpaRepository<MessageComment, UUID> {
-    List<MessageComment> findByOrderByCreatedAtAsc(UUID messageId);
+    List<MessageComment> findByMessageIdOrderByCreatedAtAsc(UUID messageId);
 
     List<MessageComment> findByUserId(UUID userID);
 }

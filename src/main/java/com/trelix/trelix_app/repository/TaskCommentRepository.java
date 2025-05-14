@@ -10,6 +10,6 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, UUID> 
 
     List<TaskComment> findByTaskId(UUID taskId);
 
-    List<TaskComment> findByUserID(UUID userID);
+    List<TaskComment> findByUserId(UUID userID);
 
 }
