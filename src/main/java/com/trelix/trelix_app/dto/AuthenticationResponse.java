@@ -1,18 +1,12 @@
 package com.trelix.trelix_app.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.util.List;
+import lombok.*;
 
 @Data
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class AuthenticationResponse {
-    private String username;
-    private List<String> roles;
-    private String token;
+    private String accessToken;
+    private String refreshToken;
 }

@@ -1,12 +1,14 @@
 package com.trelix.trelix_app.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
 @AllArgsConstructor
+@Data
 @NoArgsConstructor
-public class MessageResponse {
-    private String message;
+@Builder
+public class RefreshTokenRequest {
+    private String refreshToken;
 }

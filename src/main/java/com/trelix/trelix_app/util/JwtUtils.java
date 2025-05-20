@@ -22,7 +22,7 @@ public class JwtUtils {
     private String jwtSecret;
 
     @Value("${spring.app.jwtExpirationMs}")
-    private int jwtExpirationMs;
+    private long jwtExpirationMs;
 
     public String getJwtFromHeader(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
@@ -45,7 +45,7 @@ public class JwtUtils {
 
     public String getUserNameFromJwtToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey((SecretKey) key())
+                .setSigningKey(key())
                 .build().parseClaimsJws(token)
                 .getBody().getSubject();
     }
@@ -70,4 +70,10 @@ public class JwtUtils {
         }
         return false;
     }
+
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        String username = getUserNameFromJwtToken(token);
+        return username.equals(userDetails.getUsername()) && validateJwtToken(token);
+    }
+
 }

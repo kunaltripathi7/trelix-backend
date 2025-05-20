@@ -1,5 +1,6 @@
 package com.trelix.trelix_app.entity;
 
+import com.trelix.trelix_app.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -21,7 +22,7 @@ public class TeamUser {
     @ManyToOne @JoinColumn(name = "team_id", nullable = false)
     private Team team;
 
-    @ManyToOne @JoinColumn(name = "role_id")
+    @Enumerated(EnumType.STRING)
     private Role role;
 
     private LocalDateTime joinedAt;

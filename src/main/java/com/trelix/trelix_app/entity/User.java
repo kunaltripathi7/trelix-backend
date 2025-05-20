@@ -1,42 +1,41 @@
 package com.trelix.trelix_app.entity;
 
+import com.trelix.trelix_app.enums.Role;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name="users")
+@Table(name = "users")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User implements UserDetails {
-    @Id @GeneratedValue
+public class User {
+
+    @Id
+    @GeneratedValue
     @Column(name = "user_id")
     private UUID id;
 
-    private String name;
-
-    @Column(unique = true, nullable = false)
     private String username;
 
+    @Column(unique = true, nullable = false)
+    private String email;
+
     private String password;
+
     private boolean enabled = true;
 
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
-    @Column(name = "authority")
-    private String role;
+    @Column(length = 500)
+    private String refreshToken;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -64,35 +63,4 @@ public class User implements UserDetails {
 
     @OneToMany(mappedBy = "changedBy", cascade = CascadeType.ALL)
     private List<TaskStatusChange> statusChanges = new ArrayList<>();
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + this.role.toUpperCase()));
-    }
-
-    @Override
-    public String getUsername() {
-        return this.username;  // Using email as the username
-    }
-
-    // These are security flags - set to true for now
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return this.enabled;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
 }
