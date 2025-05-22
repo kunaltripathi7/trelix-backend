@@ -2,6 +2,7 @@ package com.trelix.trelix_app.service;
 
 import com.trelix.trelix_app.entity.ProjectMember;
 import com.trelix.trelix_app.entity.TeamUser;
+import com.trelix.trelix_app.enums.Role;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.ProjectMemberRepository;
 import com.trelix.trelix_app.repository.TeamUserRepository;
@@ -17,26 +18,31 @@ public class AuthorizationService {
     private final TeamUserRepository teamUserRepository;
     private final ProjectMemberRepository projectMemberRepository;
 
-    public void checkIfUserIsAdminInTeam(UUID teamId, UUID userId) {
-        TeamUser teamUser = teamUserRepository.findByTeamIdAndUserId(teamId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
-       if (!"ADMIN".equals(teamUser.getRole().toString())) throw new ResourceNotFoundException("User is not an admin.");
+    public boolean checkIfUserIsAdminInTeam(UUID teamId, UUID userId) {
+        return teamUserRepository.findByTeamIdAndUserIdAndRole(teamId, userId, Role.ROLE_ADMIN).isPresent();
     }
 
-    public void checkIfUserIsMemberInTeam(UUID teamId, UUID userId) {
-        teamUserRepository.findByTeamIdAndUserId(teamId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+    public boolean checkIfUserIsMemberInTeam(UUID teamId, UUID userId) {
+        return teamUserRepository.findByTeamIdAndUserIdAndRole(teamId, userId, Role.ROLE_MEMBER).isPresent();
     }
 
-    public void checkIfUserIsMemberInProject(UUID projectId, UUID userId) {
-        projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+    public boolean checkIfUserIsMemberInProject(UUID projectId, UUID userId) {
+        return projectMemberRepository.findByProjectIdAndUserIdAndRole(projectId, userId, Role.ROLE_MEMBER).isPresent();
     }
 
-    public void checkIfUserIsAdminInProject(UUID projectId, UUID userId) {
-        ProjectMember projectMember =  projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
-        if (!"ADMIN".equals(projectMember.getRole().toString()))
-            throw new ResourceNotFoundException("User is not an admin.");
+    public boolean checkIfUserIsAdminInProject(UUID projectId, UUID userId) {
+     return projectMemberRepository.findByProjectIdAndUserIdAndRole(projectId, userId, Role.ROLE_ADMIN).isPresent();
+    }
+
+    public void checkProjectAccess(UUID teamId, UUID projectId, UUID userId) {
+        if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsMemberInProject(projectId, userId) && !checkIfUserIsAdminInProject(projectId, userId)) {
+            throw new ResourceNotFoundException("User does not have access to this project");
+        }
+    }
+
+    public void CheckTaskAccess(UUID taskId, UUID userId) {
+        if (!projectMemberRepository.existsByTaskIdAndUserId(taskId, userId)) {
+            throw new ResourceNotFoundException("User does not have access to this task");
+        }
     }
 }

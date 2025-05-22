@@ -49,8 +49,8 @@ public class AppMapper {
                 .id(task.getId())
                 .title(task.getTitle())
                 .description(task.getDescription())
-                .status(task.getStatus())
-                .priority(task.getPriority())
+                .status(task.getStatus().toString())
+                .priority(task.getPriority().toString())
                 .dueDate(task.getDueDate())
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
@@ -84,6 +84,16 @@ public class AppMapper {
                 .uploadedAt(attachment.getCreatedAt())
                 .build();
     }
+
+    public static TaskStatusChangeDTO convertToTaskStatusChangeDTO(TaskStatusChange taskStatusChange) {
+        return TaskStatusChangeDTO.builder()
+                .oldStatus(taskStatusChange.getPreviousStatus().toString())
+                .newStatus(taskStatusChange.getNewStatus().toString())
+                .changedByName(taskStatusChange.getChangedBy() != null ? taskStatusChange.getChangedBy().getUsername() : null)
+                .changedAt(taskStatusChange.getChangedAt())
+                .build();
+    }
+
 
 
 }

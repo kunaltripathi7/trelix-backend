@@ -25,7 +25,7 @@ public class ProjectMember {
 
     @ManyToOne
     @JoinColumn(name = "project_id", nullable = false)
-    private String projectId;
+    private Project project;
 
     @Enumerated(EnumType.STRING)
     private Role role;

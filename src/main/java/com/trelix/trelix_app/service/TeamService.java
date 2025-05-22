@@ -7,8 +7,8 @@ import com.trelix.trelix_app.dto.TeamResponse;
 import com.trelix.trelix_app.entity.Team;
 import com.trelix.trelix_app.entity.TeamUser;
 import com.trelix.trelix_app.entity.User;
+import com.trelix.trelix_app.enums.Role;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
-import com.trelix.trelix_app.repository.RoleRepository;
 import com.trelix.trelix_app.repository.TeamRepository;
 import com.trelix.trelix_app.repository.TeamUserRepository;
 import com.trelix.trelix_app.repository.UserRepository;
@@ -27,14 +27,11 @@ import java.util.UUID;
 public class TeamService {
 
     private final TeamRepository teamRepository;
-    private final RoleRepository roleRepository;
     private final TeamUserRepository teamUserRepository;
     private final UserRepository userRepository;
     private final AuthorizationService authorizationService;
 
     public TeamResponse createTeam(TeamRequest request, UUID userId) {
-        Role adminRole = roleRepository.findByName("ADMIN")
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
         Team team = Team.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -45,7 +42,7 @@ public class TeamService {
 
         TeamUser teamUser = TeamUser.builder()
                 .team(team)
-                .role(adminRole)
+                .role(Role.ROLE_ADMIN)
                 .joinedAt(LocalDateTime.now())
                 .build();
         teamUserRepository.save(teamUser);
@@ -55,15 +52,12 @@ public class TeamService {
     public void joinTeam(UUID teamId, UUID userId)  {
         if (teamUserRepository.existsByUserIdAndTeamId(userId, teamId)) return;
         Team team = teamRepository.findById(teamId).orElseThrow(() -> new ResourceNotFoundException("Team not found"));
-        Role memberRole = roleRepository.findByName("MEMBER")
-            .orElseThrow(() -> new RuntimeException("Role not found"));
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         TeamUser teamUser = TeamUser.builder()
                 .team(team)
                 .user(user)
-                .role(memberRole)
+                .role(Role.ROLE_MEMBER)
                 .joinedAt(LocalDateTime.now())
                 .build();
         teamUserRepository.save(teamUser);

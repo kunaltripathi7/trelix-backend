@@ -1,5 +1,6 @@
 package com.trelix.trelix_app.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,9 +15,13 @@ import java.util.UUID;
 @NoArgsConstructor
 public class TaskCommentDTO {
     private UUID id;
+    @NotBlank(message = "Content cannot be blank")
     private String content;
+    @NotBlank(message = "Task ID cannot be blank")
     private UUID authorId;
+    @NotBlank(message = "Task ID cannot be blank")
     private String authorName;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

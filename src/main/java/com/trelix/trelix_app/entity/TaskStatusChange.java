@@ -1,5 +1,6 @@
 package com.trelix.trelix_app.entity;
 
+import com.trelix.trelix_app.enums.TaskStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -18,8 +19,11 @@ public class TaskStatusChange {
     @ManyToOne @JoinColumn(name = "task_id", nullable = false)
     private Task task;
 
-    private String previousStatus;
-    private String newStatus;
+    @Enumerated(EnumType.STRING)
+    private TaskStatus previousStatus;
+
+    @Enumerated(EnumType.STRING)
+    private TaskStatus newStatus;
 
     @ManyToOne @JoinColumn(name = "changed_by", nullable = false)
     private User changedBy;

@@ -40,24 +40,17 @@ public class ProjectService {
         return AppMapper.convertToProjectDetailResponse(project);
     }
 
-    public List<ProjectResponse> getProjects(UUID teamId, UUID userId) {
-        List<Project> projects = projectRepository.findByTeamId(teamId);
-        return projects.stream().map(AppMapper::convertToProjectResponse).toList();
+    public ProjectDetailResponse getProject(UUID projectId) {
+        Project project = projectRepository.findById(projectId).orElseThrow(() -> new ResourceNotFoundException("Project doesn't exist."));
+        return AppMapper.convertToProjectDetailResponse(project);
     }
 
-//    public ProjectDetailResponse getProject(UUID projectId) {
-//        Project project = projectRepository.findById(projectId).orElseThrow(() -> new ResourceNotFoundException("Project doesn't exist."));
-//        return AppMapper.convertToProjectDetailResponse(project);
-//    }
-
-
-    public List<ProjectResponse> getProjects(UUID teamId, UUID userId) {
-        boolean isTeamAdmin = teamUserRepository.existsByTeamIdAndUserIdAndRole(teamId, userId, Role.ADMIN);
+    public List<ProjectResponse> getProjects(UUID teamId, UUID userId, boolean isTeamAdmin) {
         List<Project> projects;
         if (isTeamAdmin) {
             projects = projectRepository.findByTeamId(teamId);
         } else {
-            projects = projectRepository.findByTeamIdAndUserIsMember(teamId, userId);
+            projects = projectRepository.findByProjectMembersUserId(userId);
         }
         return projects.stream().map(AppMapper::convertToProjectResponse).toList();
     }
