@@ -1,5 +1,6 @@
 package com.trelix.trelix_app.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import java.util.UUID;
 
@@ -7,7 +8,8 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class TeamMemberDTO {
+@JsonInclude(JsonInclude.Include.NON_NULL) // Exclude null fields from JSON serialization
+public class MemberDTO {
     private UUID id;
     private String username;
     private String email;

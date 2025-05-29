@@ -1,7 +1,7 @@
 package com.trelix.trelix_app.service;
 
+import com.trelix.trelix_app.dto.MemberDTO;
 import com.trelix.trelix_app.dto.TeamDetailsResponse;
-import com.trelix.trelix_app.dto.TeamMemberDTO;
 import com.trelix.trelix_app.dto.TeamRequest;
 import com.trelix.trelix_app.dto.TeamResponse;
 import com.trelix.trelix_app.entity.Team;
@@ -84,7 +84,7 @@ public class TeamService {
                 .build();
     }
 
-    public List<TeamMemberDTO> getMembers(UUID teamId) {
+    public List<MemberDTO> getMembers(UUID teamId) {
         Team team = teamRepository.findById(teamId).orElseThrow(() -> new ResourceNotFoundException("Team not found"));
         return team.getTeamUsers().stream().map(AppMapper::convertToTeamMemberDto).toList();
     }

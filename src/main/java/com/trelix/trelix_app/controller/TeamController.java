@@ -1,6 +1,7 @@
 package com.trelix.trelix_app.controller;
 
 
+import com.trelix.trelix_app.dto.MemberDTO;
 import com.trelix.trelix_app.dto.TeamDetailsResponse;
 import com.trelix.trelix_app.dto.TeamMemberDTO;
 import com.trelix.trelix_app.dto.TeamRequest;
@@ -55,9 +56,9 @@ public class TeamController {
     }
 
     @GetMapping("/teams/{id}/members")
-    public ResponseEntity<List<TeamMemberDTO>> getMembers(@PathVariable UUID teamId, @AuthenticationPrincipal CustomUserDetails user ) {
+    public ResponseEntity<List<MemberDTO>> getMembers(@PathVariable UUID teamId, @AuthenticationPrincipal CustomUserDetails user ) {
         authService.checkIfUserIsMemberInTeam(user.getId(), teamId);
-        List<TeamMemberDTO> members = teamService.getMembers(teamId);
+        List<MemberDTO> members = teamService.getMembers(teamId);
         return new ResponseEntity<>(members, HttpStatus.OK);
     }
 

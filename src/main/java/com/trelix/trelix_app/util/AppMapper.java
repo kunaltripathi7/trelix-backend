@@ -4,9 +4,9 @@ import com.trelix.trelix_app.dto.*;
 import com.trelix.trelix_app.entity.*;
 
 public class AppMapper {
-    public static TeamMemberDTO convertToTeamMemberDto(TeamUser teamUser) {
+    public static MemberDTO convertToTeamMemberDto(TeamUser teamUser) {
         User member = teamUser.getUser();
-        return TeamMemberDTO.builder()
+        return MemberDTO.builder()
                 .id(member.getId())
                 .username(member.getUsername())
                 .email(member.getEmail())

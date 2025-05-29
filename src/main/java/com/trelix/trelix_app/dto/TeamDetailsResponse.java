@@ -19,7 +19,7 @@ public class TeamDetailsResponse {
     private String description;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private List<TeamMemberDTO> members;
+    private List<MemberDTO> members;
     private List<ProjectResponse> projects;
     private List<ChannelDTO> channels;
 }
