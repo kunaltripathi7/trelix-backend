@@ -1,11 +1,11 @@
 package com.trelix.trelix_app.service;
 
 import com.trelix.trelix_app.enums.Role;
-import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.ProjectMemberRepository;
 import com.trelix.trelix_app.repository.TaskMemberRepository;
 import com.trelix.trelix_app.repository.TeamUserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -36,18 +36,30 @@ public class AuthorizationService {
 
     public void checkProjectAccess(UUID teamId, UUID projectId, UUID userId) {
         if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsMemberInProject(projectId, userId) && !checkIfUserIsAdminInProject(projectId, userId)) {
-            throw new ResourceNotFoundException("User does not have access to this project");
+            throw new AccessDeniedException("User does not have access to this project");
         }
 
     }
 
+    public void checkTeamAccess(UUID teamId, UUID userId) {
+        if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsMemberInTeam(teamId, userId)) {
+            throw new AccessDeniedException("User does not have access to this team");
+        }
+    }
+
     public void checkTaskAccess(UUID teamId, UUID projectId, UUID taskId, UUID userId) {
         if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsMemberInTask(taskId, userId) && !checkIfUserIsAdminInProject(projectId, userId)) {
-            throw new ResourceNotFoundException("User does not have access to this task");
+            throw new AccessDeniedException("User does not have access to this task");
         }
     }
 
     private boolean checkIfUserIsMemberInTask(UUID taskId, UUID userId) {
         return taskMemberRepository.findByTaskIdAndUserId(taskId, userId).isPresent();
+    }
+
+    public void checkProjectAdminAccess(UUID teamId, UUID projectId, UUID userId) {
+        if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsAdminInProject(projectId, userId)) {
+            throw new AccessDeniedException("User does not have access to this project");
+        }
     }
 }

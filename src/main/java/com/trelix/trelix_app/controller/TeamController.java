@@ -3,7 +3,6 @@ package com.trelix.trelix_app.controller;
 
 import com.trelix.trelix_app.dto.MemberDTO;
 import com.trelix.trelix_app.dto.TeamDetailsResponse;
-import com.trelix.trelix_app.dto.TeamMemberDTO;
 import com.trelix.trelix_app.dto.TeamRequest;
 import com.trelix.trelix_app.dto.TeamResponse;
 import com.trelix.trelix_app.service.AuthorizationService;
@@ -42,7 +41,7 @@ public class TeamController {
         return new ResponseEntity<>("You have joined the team", HttpStatus.OK);
     }
 
-    @GetMapping("/my/teams")
+    @GetMapping("/users/me/teams")
     public ResponseEntity<List<TeamResponse>> getTeams(@AuthenticationPrincipal CustomUserDetails user) {
         List<TeamResponse> teams = teamService.getTeams(user.getId());
         return new ResponseEntity<>(teams, HttpStatus.OK);

@@ -24,6 +24,8 @@ public class Channel {
     private String name;
     private Boolean isPrivate;
 
+    private String description;
+
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "channel", cascade = CascadeType.ALL)

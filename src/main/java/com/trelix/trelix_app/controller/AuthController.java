@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 public class AuthController {
 
     @Autowired
@@ -38,7 +38,6 @@ public class AuthController {
 
     @Autowired
     private UserService userDetailsService;
-
 
     @PostMapping("/login")
     public ResponseEntity<?> login(

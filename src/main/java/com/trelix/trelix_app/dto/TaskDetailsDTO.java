@@ -9,11 +9,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-@Builder
 @Data
-@AllArgsConstructor
+@Builder
 @NoArgsConstructor
-public class TaskDTO {
+@AllArgsConstructor
+public class TaskDetailsDTO {
     private UUID id;
     private String title;
     private String description;
@@ -24,4 +24,8 @@ public class TaskDTO {
     private LocalDateTime updatedAt;
     private UUID assignedToId;
     private String assignedToName;
+    private List<TaskCommentDTO> comments;
+    private List<AttachmentDTO> attachments;
+    private List<TaskStatusChangeDTO> statusChanges;
+    private List<EventDTO> events;
 }

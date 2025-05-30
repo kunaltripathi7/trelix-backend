@@ -41,8 +41,14 @@ public class AppMapper {
         return ChannelDTO.builder()
                 .id(channel.getId())
                 .name(channel.getName())
+                .isPrivate(channel.getIsPrivate())
+                .createdAt(channel.getCreatedAt())
+                .teamId(channel.getTeam() != null ? channel.getTeam().getId() : null)
+                .projectId(channel.getProject() != null ? channel.getProject().getId() : null)
+                .description(channel.getDescription())
                 .build();
     }
+
 
     public static TaskDTO convertToTaskDTO(Task task) {
         return TaskDTO.builder()
@@ -56,12 +62,6 @@ public class AppMapper {
                 .updatedAt(task.getUpdatedAt())
                 .assignedToId(task.getAssignedTo() != null ? task.getAssignedTo().getId() : null)
                 .assignedToName(task.getAssignedTo() != null ? task.getAssignedTo().getUsername() : null)
-                .comments(task.getComments() != null
-                        ? task.getComments().stream().map(AppMapper::convertToCommentDTO).toList()
-                        : null)
-                .attachments(task.getAttachments() != null
-                        ? task.getAttachments().stream().map(AppMapper::convertToAttachmentDTO).toList()
-                        : null)
                 .build();
     }
     public static TaskCommentDTO convertToCommentDTO(TaskComment comment) {
@@ -79,9 +79,6 @@ public class AppMapper {
                 .id(attachment.getId())
                 .fileName(attachment.getFileName())
                 .fileUrl(attachment.getUrl())
-                .uploadedById(attachment.getUploadedBy() != null ? attachment.getUploadedBy().getId() : null)
-                .uploadedByName(attachment.getUploadedBy() != null ? attachment.getUploadedBy().getUsername() : null)
-                .uploadedAt(attachment.getCreatedAt())
                 .build();
     }
 
@@ -94,6 +91,26 @@ public class AppMapper {
                 .build();
     }
 
+    public static MessageDTO convertToMessageDTO(Message message) {
+        return MessageDTO.builder()
+                .id(message.getId())
+                .content(message.getContent())
+                .senderId(message.getSender() != null ? message.getSender().getId() : null)
+                .sentAt(message.getCreatedAt())
+                .comments(message.getComments() != null ? message.getComments().stream().map(AppMapper::convertToMessageCommentDTO).toList() : null)
+                .senderUsername(message.getSender() != null ? message.getSender().getUsername() : null)
+                .attachments(message.getAttachments() != null ? message.getAttachments().stream().map(AppMapper::convertToAttachmentDTO).toList() : null)
+                .build();
+    }
 
+    public static MessageCommentDTO convertToMessageCommentDTO(MessageComment comment) {
+        return MessageCommentDTO.builder()
+                .id(comment.getId())
+                .username(comment.getUser() != null ? comment.getUser().getUsername() : null)
+                .userId(comment.getUser() != null ? comment.getUser().getId() : null)
+                .content(comment.getContent())
+                .createdAt(comment.getCreatedAt())
+                .build();
 
+    }
 }
