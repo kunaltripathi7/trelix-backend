@@ -1,6 +1,7 @@
 package com.trelix.trelix_app.service;
 
 import com.trelix.trelix_app.dto.TaskDTO;
+import com.trelix.trelix_app.dto.TaskDetailsDTO;
 import com.trelix.trelix_app.dto.TaskRequest;
 import com.trelix.trelix_app.entity.Project;
 import com.trelix.trelix_app.entity.Task;
@@ -77,10 +78,10 @@ public class TaskService {
                 .toList();
     }
 
-    public TaskDTO getTaskById(UUID taskId) {
+    public TaskDetailsDTO getTaskById(UUID taskId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
-        return AppMapper.convertToTaskDTO(task);
+        return AppMapper.convertToTaskDetailsDTO(task);
     }
 
     public TaskDTO updateTask(UUID taskId, TaskRequest taskRequest, UUID userId) {

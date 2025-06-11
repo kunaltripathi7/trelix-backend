@@ -64,6 +64,41 @@ public class AppMapper {
                 .assignedToName(task.getAssignedTo() != null ? task.getAssignedTo().getUsername() : null)
                 .build();
     }
+
+    public static TaskDetailsDTO convertToTaskDetailsDTO(Task task) {
+        return TaskDetailsDTO.builder()
+                .id(task.getId())
+                .title(task.getTitle())
+                .description(task.getDescription())
+                .status(task.getStatus().toString())
+                .priority(task.getPriority().toString())
+                .dueDate(task.getDueDate())
+                .createdAt(task.getCreatedAt())
+                .updatedAt(task.getUpdatedAt())
+                .assignedToId(task.getAssignedTo() != null ? task.getAssignedTo().getId() : null)
+                .assignedToName(task.getAssignedTo() != null ? task.getAssignedTo().getUsername() : null)
+                .comments(task.getComments() != null ? task.getComments().stream().map(AppMapper::convertToCommentDTO).toList() : null)
+                .attachments(task.getAttachments() != null ? task.getAttachments().stream().map(AppMapper::convertToAttachmentDTO).toList() : null)
+                .statusChanges(task.getStatusChanges() != null ? task.getStatusChanges().stream().map(AppMapper::convertToTaskStatusChangeDTO).toList() : null)
+                .events(task.getEvents() != null ? task.getEvents().stream().map(AppMapper::convertToEventDTO).toList() : null)
+                .build();
+    }
+
+    public static EventDTO convertToEventDTO(Event event) {
+        return EventDTO.builder()
+                .id(event.getId().toString())
+                .title(event.getTitle())
+                .description(event.getDescription())
+                .startTime(event.getCreatedAt())
+                .endTime(event.getEndTime())
+                .projectId(event.getProject() != null ? event.getProject().getId().toString() : null)
+                .teamId(event.getTeam() != null ? event.getTeam().getId().toString() : null)
+                .taskId(event.getTask() != null ? event.getTask().getId().toString() : null)
+                .createdBy(event.getCreatedBy() != null ? event.getCreatedBy().toString() : null)
+                .createdAt(event.getCreatedAt() != null ? event.getCreatedAt() : null)
+                .build();
+    }
+
     public static TaskCommentDTO convertToCommentDTO(TaskComment comment) {
         return TaskCommentDTO.builder()
                 .id(comment.getId())

@@ -1,6 +1,7 @@
 package com.trelix.trelix_app.controller;
 
 import com.trelix.trelix_app.dto.TaskDTO;
+import com.trelix.trelix_app.dto.TaskDetailsDTO;
 import com.trelix.trelix_app.dto.TaskRequest;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.AuthorizationService;
@@ -16,6 +17,7 @@ import java.util.UUID;
 
 @RestController
 public class TaskController {
+    
 
     @Autowired
     private TaskService taskService;
@@ -44,12 +46,12 @@ public class TaskController {
     }
 
     @GetMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}")
-    public ResponseEntity<TaskDTO> getTask(@PathVariable UUID teamId,
-                                           @PathVariable UUID projectId,
-                                           @PathVariable UUID taskId,
-                                           @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<TaskDetailsDTO> getTask(@PathVariable UUID teamId,
+                                                      @PathVariable UUID projectId,
+                                                      @PathVariable UUID taskId,
+                                                      @AuthenticationPrincipal CustomUserDetails userDetails) {
         authService.checkProjectAccess(teamId, projectId, userDetails.getId());
-        TaskDTO task = taskService.getTaskById(taskId);
+        TaskDetailsDTO task = taskService.getTaskById(taskId);
         return ResponseEntity.ok(task);
     }
 

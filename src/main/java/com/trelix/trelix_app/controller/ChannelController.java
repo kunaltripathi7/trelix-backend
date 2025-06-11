@@ -5,6 +5,7 @@ import com.trelix.trelix_app.dto.ChannelRequest;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.AuthorizationService;
 import com.trelix.trelix_app.service.ChannelService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,100 +26,65 @@ public class ChannelController {
 
 
     @PostMapping("/teams/{teamId}/channels")
-    public ResponseEntity<ChannelDTO> createChannelForTeam(@PathVariable UUID teamId,
-                                                           @AuthenticationPrincipal CustomUserDetails userDetails,
-                                                           @RequestBody ChannelRequest channelRequest) {
-        authorizationService.checkIfUserIsAdminInTeam(teamId, userDetails.getId());
-        ChannelDTO createdChannel = channelService.createChannelForTeam(teamId, channelRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdChannel);
-    }
-
-    @PostMapping("/teams/{teamId}/projects/{projectId}/channels")
     public ResponseEntity<ChannelDTO> createChannel(@PathVariable UUID teamId,
-                                                    @PathVariable UUID projectId,
-                                                    @AuthenticationPrincipal CustomUserDetails userDetails,
-                                                    @RequestBody ChannelRequest channelRequest) {
-        authorizationService.checkProjectAdminAccess(teamId, projectId, userDetails.getId());
-        ChannelDTO createdChannel = channelService.createChannel(teamId, projectId, channelRequest);
+                                                           @AuthenticationPrincipal CustomUserDetails userDetails,
+                                                           @Valid @RequestBody ChannelRequest channelRequest) {
+        if (channelRequest.getProjectId() == null) {
+            authorizationService.checkIfUserIsAdminInTeam(teamId, userDetails.getId());
+        } else {
+            authorizationService.checkProjectAdminAccess(teamId, channelRequest.getProjectId(), userDetails.getId());
+        }
+        ChannelDTO createdChannel = channelService.createChannel(teamId, channelRequest.getProjectId(), channelRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdChannel);
-    }
-
-
-
-
-    @GetMapping("/teams/{teamId}/projects/{projectId}/channels/{channelId}")
-    public ResponseEntity<ChannelDTO> getChannel(@PathVariable UUID teamId,
-                                                 @PathVariable UUID projectId,
-                                                 @PathVariable UUID channelId,
-                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authorizationService.checkProjectAccess(teamId, projectId, userDetails.getId());
-        ChannelDTO channel = channelService.getChannel(channelId);
-        return ResponseEntity.ok(channel);
     }
 
     @GetMapping("/teams/{teamId}/channels/{channelId}")
-    public ResponseEntity<ChannelDTO> getChannelForTeam(@PathVariable UUID teamId,
-                                                                @PathVariable UUID channelId,
-                                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authorizationService.checkTeamAccess(teamId, userDetails.getId());
+    public ResponseEntity<ChannelDTO> getChannel(@PathVariable UUID teamId,
+                                                 @RequestParam(required = false) UUID projectId,
+                                                 @PathVariable UUID channelId,
+                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
+        if (projectId == null) {
+            authorizationService.checkTeamAccess(teamId, userDetails.getId());
+        } else {
+            authorizationService.checkProjectAccess(teamId, projectId, userDetails.getId());
+        }
         ChannelDTO channel = channelService.getChannel(channelId);
         return ResponseEntity.ok(channel);
     }
 
-    @GetMapping("/teams/{teamId}/projects/{projectId}/channels")
-    public ResponseEntity<List<ChannelDTO>> getChannelsForProject(@PathVariable UUID teamId,
-                                                                  @PathVariable UUID projectId,
-                                                                  @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authorizationService.checkProjectAccess(teamId, projectId, userDetails.getId());
-        List<ChannelDTO> channels = channelService.getChannelsForProject(projectId);
-        return ResponseEntity.ok(channels);
-    }
-
-    @GetMapping("/teams/{teamId}/channels")
-    public ResponseEntity<List<ChannelDTO>> getChannelsForTeam(@PathVariable UUID teamId,
-                                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
+    @GetMapping("/teams/{teamId}}/channels")
+    public ResponseEntity<List<ChannelDTO>> getChannels(@PathVariable UUID teamId,
+                                                        @RequestParam(required = false) UUID projectId,
+                                                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+        if (projectId == null) {
         authorizationService.checkTeamAccess(teamId, userDetails.getId());
-        List<ChannelDTO> channels = channelService.getChannelsForTeam(teamId);
-        return ResponseEntity.ok(channels);
-    }
-
-    @PutMapping("/teams/{teamId}/projects/{projectId}/channels/{channelId}")
-    public ResponseEntity<ChannelDTO> updateChannel(@PathVariable UUID teamId,
-                                                    @PathVariable UUID channelId,
-                                                    @PathVariable  UUID projectId,
-                                                    @AuthenticationPrincipal CustomUserDetails userDetails,
-                                                    @RequestBody ChannelRequest channelRequest) {
-        authorizationService.checkProjectAdminAccess(teamId, projectId, userDetails.getId());
-        ChannelDTO updatedChannel = channelService.updateChannel(channelId, channelRequest);
-        return ResponseEntity.ok(updatedChannel);
+        return ResponseEntity.ok(channelService.getChannelsForTeam(teamId));
+        } else {
+            authorizationService.checkProjectAccess(teamId, projectId, userDetails.getId());
+            return ResponseEntity.ok(channelService.getChannelsForProject(projectId));
+        }
     }
 
     @PutMapping("/teams/{teamId}/channels/{channelId}")
-    public ResponseEntity<ChannelDTO> updateChannelForTeam(@PathVariable UUID teamId,
-                                                                   @PathVariable UUID channelId,
-                                                                   @AuthenticationPrincipal CustomUserDetails userDetails,
-                                                                   @RequestBody ChannelRequest channelRequest) {
-        authorizationService.checkIfUserIsAdminInTeam(teamId, userDetails.getId());
+    public ResponseEntity<ChannelDTO> updateChannel(@PathVariable UUID teamId,
+                                                    @PathVariable UUID channelId,
+                                                    @AuthenticationPrincipal CustomUserDetails userDetails,
+                                                    @Valid @RequestBody ChannelRequest channelRequest) {
+        if (channelRequest.getProjectId() == null) {
+            authorizationService.checkIfUserIsAdminInTeam(teamId, userDetails.getId());
+        } else {
+            authorizationService.checkProjectAdminAccess(teamId, channelRequest.getProjectId(), userDetails.getId());
+        }
         ChannelDTO updatedChannel = channelService.updateChannel(channelId, channelRequest);
         return ResponseEntity.ok(updatedChannel);
     }
 
-    @DeleteMapping("/teams/{teamId}/projects/{projectId}/channels/{channelId}")
+    @DeleteMapping("/teams/{teamId}/channels/{channelId}")
     public ResponseEntity<Void> deleteChannel(@PathVariable UUID teamId,
-                                              @PathVariable UUID projectId,
                                               @PathVariable UUID channelId,
                                               @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authorizationService.checkProjectAdminAccess(teamId, projectId, userDetails.getId());
-        channelService.deleteChannel(channelId);
-        return ResponseEntity.noContent().build();
-    }
 
-    @DeleteMapping("/teams/{teamId}/channels/{channelId}")
-    public ResponseEntity<Void> deleteChannelForTeam(@PathVariable UUID teamId,
-                                                     @PathVariable UUID channelId,
-                                                     @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authorizationService.checkIfUserIsAdminInTeam(teamId, userDetails.getId());
-        channelService.deleteChannel(channelId);
+        channelService.deleteChannel(teamId, channelId, userDetails.getId());
         return ResponseEntity.noContent().build();
     }
 

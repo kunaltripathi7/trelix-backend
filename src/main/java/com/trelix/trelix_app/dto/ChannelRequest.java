@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @AllArgsConstructor
 @Data
 @Builder
@@ -19,4 +21,5 @@ public class ChannelRequest {
     @NotNull(message = "Channel privacy status cannot be null")
     private Boolean isPrivate;
     private String description;
+    private UUID projectId;
 }

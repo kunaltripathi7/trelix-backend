@@ -26,29 +26,19 @@ public class ChannelService {
     private final ChannelRepository channelRepository;
     private final TeamRepository teamRepository;
     private final ProjectRepository projectRepository;
+    private final AuthorizationService authorizationService;
 
     public ChannelDTO createChannel(UUID teamId, UUID projectId, ChannelRequest channelRequest) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
-        Project project = projectRepository.findById(projectId)
+        Project project = null;
+        if (projectId != null) {
+        project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + projectId));
+        }
         Channel channel = Channel.builder()
                 .team(team)
                 .project(project)
-                .name(channelRequest.getName())
-                .isPrivate(channelRequest.getIsPrivate())
-                .description(channelRequest.getDescription())
-                .createdAt(LocalDateTime.now())
-                .build();
-        channelRepository.save(channel);
-        return AppMapper.convertToChannelDto(channel);
-    }
-
-    public ChannelDTO createChannelForTeam(UUID teamId, ChannelRequest channelRequest) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
-        Channel channel = Channel.builder()
-                .team(team)
                 .name(channelRequest.getName())
                 .isPrivate(channelRequest.getIsPrivate())
                 .description(channelRequest.getDescription())
@@ -86,10 +76,15 @@ public class ChannelService {
         return AppMapper.convertToChannelDto(channel);
     }
 
-    public void deleteChannel(UUID channelId) {
+    public void deleteChannel(UUID teamId, UUID channelId, UUID userId) {
         Channel channel = channelRepository.findById(channelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Channel not found with id: " + channelId));
+        if (channel.getProject() != null) {
+            authorizationService.checkProjectAdminAccess(teamId, channel.getProject().getId(), userId);
+        }
+        else {
+            authorizationService.checkIfUserIsAdminInTeam(teamId, userId);
+        }
         channelRepository.delete(channel);
     }
-
 }

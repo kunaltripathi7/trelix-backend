@@ -53,6 +53,24 @@ public class AuthorizationService {
         }
     }
 
+
+    public boolean hasEventCreationAccess(UUID teamId, UUID projectId, UUID taskId, UUID userId) {
+        if (teamId == null) return false;
+        if (checkIfUserIsAdminInTeam(teamId, userId)) return true;
+        if (projectId != null && checkIfUserIsAdminInProject(projectId, userId)) return true;
+        if (taskId != null && checkIfUserIsMemberInTask(projectId, userId)) return true;
+        return false;
+    }
+
+    public boolean hasEventAccess(UUID teamId, UUID projectId, UUID taskId, UUID userId) {
+        if (teamId == null) return false;
+        if (checkIfUserIsAdminInTeam(teamId, userId)) return true;
+        if (taskId != null && (checkIfUserIsMemberInTask(projectId, userId) || checkIfUserIsMemberInTask(taskId, userId))) return true;
+        if (projectId != null && (checkIfUserIsAdminInProject(projectId, userId) || checkIfUserIsMemberInProject(projectId, userId))) return true;
+        if (checkIfUserIsMemberInTeam(teamId, userId)) return true;
+        return false;
+    }
+
     private boolean checkIfUserIsMemberInTask(UUID taskId, UUID userId) {
         return taskMemberRepository.findByTaskIdAndUserId(taskId, userId).isPresent();
     }
