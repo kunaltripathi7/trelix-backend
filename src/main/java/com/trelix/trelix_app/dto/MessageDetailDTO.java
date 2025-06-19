@@ -13,7 +13,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @NoArgsConstructor
-public class MessageDTO {
+public class MessageDetailDTO {
     private UUID id;
     private String content;
     private UUID senderId;

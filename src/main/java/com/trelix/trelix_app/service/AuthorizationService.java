@@ -1,6 +1,9 @@
 package com.trelix.trelix_app.service;
 
+import com.trelix.trelix_app.entity.Channel;
 import com.trelix.trelix_app.enums.Role;
+import com.trelix.trelix_app.exception.ResourceNotFoundException;
+import com.trelix.trelix_app.repository.ChannelRepository;
 import com.trelix.trelix_app.repository.ProjectMemberRepository;
 import com.trelix.trelix_app.repository.TaskMemberRepository;
 import com.trelix.trelix_app.repository.TeamUserRepository;
@@ -12,11 +15,12 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class AuthorizationService {
+public class  AuthorizationService {
 
     private final TeamUserRepository teamUserRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final TaskMemberRepository taskMemberRepository;
+    private final ChannelRepository channelRepository;
 
     public boolean checkIfUserIsAdminInTeam(UUID teamId, UUID userId) {
         return teamUserRepository.findByTeamIdAndUserIdAndRole(teamId, userId, Role.ROLE_ADMIN).isPresent();
@@ -79,5 +83,21 @@ public class AuthorizationService {
         if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsAdminInProject(projectId, userId)) {
             throw new AccessDeniedException("User does not have access to this project");
         }
+    }
+
+    public void checkMessageAccess(UUID channelId, UUID teamId, UUID projectId,  UUID userId) {
+        if (projectId == null) {
+             if (!(checkIfUserIsMemberInTeam(teamId, userId) || checkIfUserIsAdminInTeam(teamId, userId))) throw new AccessDeniedException("User doesn't have access to access messages of the channel" + channelId);
+        }
+        else if (!(checkIfUserIsMemberInProject(projectId, userId) || checkIfUserIsAdminInProject(projectId, userId))) throw new AccessDeniedException("User doesn't have access to access messages of the channel" + channelId);
+    }
+
+    public void verifyMessageOwner(UUID senderId, UUID userId) {
+        if (!senderId.equals(userId)) throw new AccessDeniedException("User doesn't have permission to edit this message.");
+    }
+
+    public void deleteMessageAccess(UUID senderId, UUID userId, UUID teamId, UUID projectId) {
+        if (checkIfUserIsAdminInTeam(teamId, userId) || (projectId != null && checkIfUserIsAdminInProject(projectId, userId))) return;
+        verifyMessageOwner(senderId, userId);
     }
 }

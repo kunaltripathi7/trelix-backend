@@ -3,6 +3,7 @@ package com.trelix.trelix_app.service;
 import com.trelix.trelix_app.dto.TaskDTO;
 import com.trelix.trelix_app.dto.TaskDetailsDTO;
 import com.trelix.trelix_app.dto.TaskRequest;
+import com.trelix.trelix_app.dto.TaskSearchCriteria;
 import com.trelix.trelix_app.entity.Project;
 import com.trelix.trelix_app.entity.Task;
 import com.trelix.trelix_app.entity.TaskStatusChange;
@@ -15,6 +16,7 @@ import com.trelix.trelix_app.repository.TaskRepository;
 import com.trelix.trelix_app.repository.TaskStatusChangeRepository;
 import com.trelix.trelix_app.repository.UserRepository;
 import com.trelix.trelix_app.util.AppMapper;
+import com.trelix.trelix_app.util.TaskSpecification;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final TaskStatusChangeRepository taskStatusChangeRepository;
+    private final AuthorizationService authService;
 
     private LocalDateTime parseDateTimeWithDefaultTime(String input) {
         try {
@@ -46,9 +49,11 @@ public class TaskService {
         }
     }
 
-    public TaskDTO createTask(TaskRequest request, UUID projectId) {
+    public TaskDTO createTask(TaskRequest request, UUID projectId, UUID userId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        UUID teamId = project.getTeam().getId();
+        authService.checkProjectAccess(teamId, projectId, userId);
         User user = null;
         if (request.getAssignedTo() != null) {
             user = userRepository.findByEmail(request.getAssignedTo())
@@ -69,25 +74,34 @@ public class TaskService {
     }
 
 
-    public List<TaskDTO> getTasksByProjectId(UUID projectId) {
+    public List<TaskDTO> getTasksByProjectId(UUID projectId, UUID userId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        UUID teamId = project.getTeam().getId();
+        authService.checkProjectAccess(teamId, projectId, userId);
         List<Task> tasks = taskRepository.findByProjectId(project.getId());
         return tasks.stream()
                 .map(AppMapper::convertToTaskDTO)
                 .toList();
     }
 
-    public TaskDetailsDTO getTaskById(UUID taskId) {
+    public TaskDetailsDTO getTaskById(UUID taskId, UUID projectId, UUID userId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        UUID teamId = project.getTeam().getId();
+        authService.checkProjectAccess(teamId, projectId, userId);
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
         return AppMapper.convertToTaskDetailsDTO(task);
     }
 
-    public TaskDTO updateTask(UUID taskId, TaskRequest taskRequest, UUID userId) {
+    public TaskDTO updateTask(UUID taskId, UUID projectId, TaskRequest taskRequest, UUID userId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        UUID teamId = project.getTeam().getId();
+        authService.checkProjectAccess(teamId, projectId, userId);
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
-
         if (!task.getStatus().toString().equals(taskRequest.getStatus())) {
             TaskStatusChange statusChange = TaskStatusChange.builder()
                     .task(task)
@@ -99,20 +113,31 @@ public class TaskService {
                     .build();
         taskStatusChangeRepository.save(statusChange);
         }
-
         task.setTitle(taskRequest.getTitle());
         task.setDescription(taskRequest.getDescription() != null ? taskRequest.getDescription() : task.getDescription());
         task.setStatus(TaskStatus.valueOf(taskRequest.getStatus()));
         task.setPriority(TaskPriority.valueOf(taskRequest.getPriority()));
         task.setDueDate(parseDateTimeWithDefaultTime(taskRequest.getDueDate()));
         task.setUpdatedAt(LocalDateTime.now());
-
         return AppMapper.convertToTaskDTO(taskRepository.save(task));
     }
 
-    public void deleteTask(UUID taskId) {
+    public void deleteTask(UUID taskId, UUID projectId, UUID userId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        UUID teamId = project.getTeam().getId();
+        authService.checkProjectAccess(teamId, projectId, userId);
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
         taskRepository.delete(task);
+    }
+
+    public List<TaskDTO> searchTasks(UUID projectId, TaskSearchCriteria taskSearchCriteria, UUID id) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        UUID teamId = project.getTeam().getId();
+        authService.checkProjectAccess(teamId, projectId, id);
+        return taskRepository.findAll(TaskSpecification.byCriteria(taskSearchCriteria))
+                .stream().map(AppMapper::convertToTaskDTO).toList();
     }
 }

@@ -5,19 +5,17 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
-@Builder
 @AllArgsConstructor
+@Builder
 @NoArgsConstructor
-public class AttachmentDTO {
+public class MessageSummaryDTO {
     private UUID id;
-    private String fileName;
-    private String fileUrl;
-    private String fileType;
-    private long fileSize;
-    private LocalDateTime createdAt;
+    private String content;
+    private UUID senderId;
+    private LocalDateTime sentAt;
+    private String senderUsername;
 }

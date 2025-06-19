@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.trelix.trelix_app.util.AppMapper.convertToAttachmentDTO;
+
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -33,14 +35,16 @@ public class AttachmentService {
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
 
-    public void uploadAttachment(MultipartFile file, UUID taskId, UUID userId, UUID messageId) throws IOException {
-        Task task = taskRepository.findById(taskId)
+    public AttachmentDTO uploadAttachment(MultipartFile file, UUID taskId, UUID userId, UUID messageId) throws IOException {
+        Task task = null;
+        if (taskId != null) task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found with ID: " + taskId));
+        Message message = null;
+        if (messageId != null) message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message not found for task ID: " + taskId));
         Map<String, Object> uploadResult = cloudinary.uploader().upload(file.getBytes(), Map.of());
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
-        Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new IllegalArgumentException("Message not found for task ID: " + taskId));
 
 
         Attachment attachment = Attachment.builder()
@@ -54,7 +58,7 @@ public class AttachmentService {
                 .message(message)
                 .build();
 
-        attachmentRepository.save(attachment);
+         return convertToAttachmentDTO(attachmentRepository.save(attachment));
 
     }
 
