@@ -1,8 +1,8 @@
 package com.trelix.trelix_app.dto;
 
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,10 +16,12 @@ import java.util.UUID;
 @NoArgsConstructor
 public class ChannelRequest {
     @NotBlank(message = "Channel name cannot be blank")
-    @Max(value=100, message = "Channel name cannot exceed 100 characters")
+    @Size(max = 100, message = "Channel name cannot exceed 100 characters")
     private String name;
     @NotNull(message = "Channel privacy status cannot be null")
     private Boolean isPrivate;
     private String description;
     private UUID projectId;
+    @NotNull(message = "Team ID cannot be null")
+    private UUID teamId;
 }

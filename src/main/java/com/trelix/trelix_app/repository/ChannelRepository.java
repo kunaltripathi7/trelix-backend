@@ -13,4 +13,6 @@ public interface ChannelRepository extends JpaRepository<Channel, UUID> {
     List<Channel> findByProjectId(UUID projectId);
 
     Optional<Channel> findByTeamIdAndName(UUID teamId, String name);
+
+    List<Channel> findByTeamIdAndProjectIdIsNull(UUID teamId);
 }

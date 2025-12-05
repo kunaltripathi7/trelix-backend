@@ -4,33 +4,31 @@ import com.trelix.trelix_app.dto.TaskStatusChangeDTO;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.AuthorizationService;
 import com.trelix.trelix_app.service.TaskStatusChangeService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 public class TaskStatusChangeController {
 
-    @Autowired
-    private TaskStatusChangeService taskStatusChangeService;
-
-    @Autowired
-    private AuthorizationService authService;
+    private final TaskStatusChangeService taskStatusChangeService;
+    private final AuthorizationService authService;
 
     @GetMapping("/teams/{teamID}/projects/{projectID}/tasks/{taskID}/status-changes")
-    public ResponseEntity<TaskStatusChangeDTO> getTaskStatusChanges(
+    public ResponseEntity<List<TaskStatusChangeDTO>> getTaskStatusChanges(
             @PathVariable UUID teamID,
             @PathVariable UUID projectID,
             @PathVariable UUID taskID,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         authService.checkProjectAccess(teamID, projectID, userDetails.getId());
-        TaskStatusChangeDTO taskStatusChangeDTO = taskStatusChangeService.getChangesByTaskId(taskID);
-        return ResponseEntity.ok(taskStatusChangeDTO);
+        List<TaskStatusChangeDTO> taskStatusChanges = taskStatusChangeService.getChangesByTaskId(taskID);
+        return ResponseEntity.ok(taskStatusChanges);
     }
 }

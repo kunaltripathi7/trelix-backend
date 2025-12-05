@@ -26,16 +26,20 @@ public class ChannelService {
     private final ChannelRepository channelRepository;
     private final TeamRepository teamRepository;
     private final ProjectRepository projectRepository;
-    private final AuthorizationService authorizationService;
+    private final AuthorizationService authService;
 
-    public ChannelDTO createChannel(UUID teamId, UUID projectId, ChannelRequest channelRequest) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
+    public ChannelDTO createChannel(ChannelRequest channelRequest, UUID userId) {
+        Team team = teamRepository.findById(channelRequest.getTeamId())
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + channelRequest.getTeamId()));
         Project project = null;
-        if (projectId != null) {
-        project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + projectId));
+        if (channelRequest.getProjectId() != null) {
+            project = projectRepository.findById(channelRequest.getProjectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + channelRequest.getProjectId()));
+            authService.checkProjectAdminAccess(team.getId(), project.getId(), userId);
+        } else {
+            authService.checkIfUserIsAdminInTeam(team.getId(), userId);
         }
+
         Channel channel = Channel.builder()
                 .team(team)
                 .project(project)
@@ -48,27 +52,32 @@ public class ChannelService {
         return AppMapper.convertToChannelDto(channel);
     }
 
-    public ChannelDTO getChannel(UUID channelId) {
+    public ChannelDTO getChannel(UUID channelId, UUID userId) {
         Channel channel = channelRepository.findById(channelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Channel not found with id: " + channelId));
+        authService.checkChannelAccess(channel, userId);
         return AppMapper.convertToChannelDto(channel);
     }
 
-    public List<ChannelDTO> getChannelsForTeam(UUID teamId) {
-        List<Channel> channels = channelRepository.findByTeamId(teamId);
-        return channels.stream().map(AppMapper::convertToChannelDto)
-                .toList();
+    public List<ChannelDTO> getChannelsForTeam(UUID teamId, UUID userId) {
+        authService.checkTeamAccess(teamId, userId);
+        List<Channel> channels = channelRepository.findByTeamIdAndProjectIdIsNull(teamId);
+        return channels.stream().map(AppMapper::convertToChannelDto).toList();
     }
 
-    public List<ChannelDTO> getChannelsForProject(UUID projectId) {
+    public List<ChannelDTO> getChannelsForProject(UUID projectId, UUID userId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + projectId));
+        authService.checkProjectAccess(project.getTeam().getId(), projectId, userId);
         List<Channel> channels = channelRepository.findByProjectId(projectId);
-        return channels.stream().map(AppMapper::convertToChannelDto)
-                .toList();
+        return channels.stream().map(AppMapper::convertToChannelDto).toList();
     }
 
-    public ChannelDTO updateChannel(UUID channelId, ChannelRequest channelRequest) {
+    public ChannelDTO updateChannel(UUID channelId, ChannelRequest channelRequest, UUID userId) {
         Channel channel = channelRepository.findById(channelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Channel not found with id: " + channelId));
+        authService.checkChannelAdminAccess(channel, userId);
+
         channel.setName(channelRequest.getName());
         channel.setIsPrivate(channelRequest.getIsPrivate());
         channel.setDescription(channelRequest.getDescription());
@@ -76,15 +85,10 @@ public class ChannelService {
         return AppMapper.convertToChannelDto(channel);
     }
 
-    public void deleteChannel(UUID teamId, UUID channelId, UUID userId) {
+    public void deleteChannel(UUID channelId, UUID userId) {
         Channel channel = channelRepository.findById(channelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Channel not found with id: " + channelId));
-        if (channel.getProject() != null) {
-            authorizationService.checkProjectAdminAccess(teamId, channel.getProject().getId(), userId);
-        }
-        else {
-            authorizationService.checkIfUserIsAdminInTeam(teamId, userId);
-        }
+        authService.checkChannelAdminAccess(channel, userId);
         channelRepository.delete(channel);
     }
 }

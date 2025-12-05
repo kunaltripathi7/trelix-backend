@@ -1,11 +1,11 @@
 package com.trelix.trelix_app.controller;
 
 import com.trelix.trelix_app.dto.AttachmentDTO;
+import com.trelix.trelix_app.enums.ErrorCode;
+import com.trelix.trelix_app.exception.InvalidRequestException;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.AttachmentService;
-import com.trelix.trelix_app.service.AuthorizationService;
-import org.apache.coyote.Response;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -16,45 +16,46 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 public class AttachmentController {
 
-    @Autowired
-    private AttachmentService attachmentService;
-
-    @Autowired
-    private AuthorizationService authService;
-//        authService.checkTaskAccess(teamId, projectId, taskId, userDetails.getId());
+    private final AttachmentService attachmentService;
 
     @PostMapping("/attachments")
     public ResponseEntity<AttachmentDTO> uploadAttachment(
-                                                   @RequestParam(required = false) UUID taskId,
-                                                   @RequestParam(value = "messageId", required = false) UUID messageId,
-                                                   @RequestParam("file") MultipartFile file,
-                                                   @AuthenticationPrincipal CustomUserDetails userDetails) throws IOException {
-        if (messageId == null || taskId == null) return ResponseEntity.badRequest().build();
+            @RequestParam(required = false) UUID taskId,
+            @RequestParam(value = "messageId", required = false) UUID messageId,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails) throws IOException {
+
+        if (messageId == null && taskId == null) {
+            throw new InvalidRequestException(
+                    "Either taskId or messageId must be provided.",
+                    ErrorCode.INVALID_INPUT
+            );
+        }
+        if (messageId != null && taskId != null) {
+            throw new InvalidRequestException(
+                    "Provide either taskId or messageId, but not both.",
+                    ErrorCode.INVALID_INPUT
+            );
+        }
+
         AttachmentDTO attachment = attachmentService.uploadAttachment(file, taskId, userDetails.getId(), messageId);
         return ResponseEntity.ok(attachment);
-
     }
 
-    @GetMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}/attachments")
-    public ResponseEntity<List<AttachmentDTO>> getAttachments(@PathVariable UUID teamId,
-                                                                 @PathVariable UUID projectId,
-                                                                 @PathVariable UUID taskId,
-                                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.checkTaskAccess(teamId, projectId, taskId, userDetails.getId());
-        List<AttachmentDTO> attachments = attachmentService.getAttachments(taskId);
+    @GetMapping("/tasks/{taskId}/attachments")
+    public ResponseEntity<List<AttachmentDTO>> getAttachments(@PathVariable UUID taskId,
+                                                              @AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<AttachmentDTO> attachments = attachmentService.getAttachments(taskId, userDetails.getId());
         return ResponseEntity.ok(attachments);
     }
 
-    @DeleteMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}/attachments/{attachmentId}")
-    public ResponseEntity<String> deleteAttachment(@PathVariable UUID teamId,
-                                                   @PathVariable UUID projectId,
-                                                   @PathVariable UUID taskId,
-                                                   @PathVariable UUID attachmentId,
-                                                   @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.checkTaskAccess(teamId, projectId, taskId, userDetails.getId());
-        attachmentService.deleteAttachment(attachmentId);
-        return ResponseEntity.ok("Attachment deleted successfully");
+    @DeleteMapping("/attachments/{attachmentId}")
+    public ResponseEntity<Void> deleteAttachment(@PathVariable UUID attachmentId,
+                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
+        attachmentService.deleteAttachment(attachmentId, userDetails.getId());
+        return ResponseEntity.noContent().build();
     }
 }

@@ -23,4 +23,5 @@ public class MessageComment {
 
     private String content;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

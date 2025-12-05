@@ -23,6 +23,8 @@ public class Message {
 
     private String content;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
 
     @OneToMany(mappedBy = "message", cascade = CascadeType.ALL)
     private List<MessageComment> comments = new ArrayList<>();

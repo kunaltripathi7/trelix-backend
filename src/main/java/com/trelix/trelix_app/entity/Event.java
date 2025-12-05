@@ -33,6 +33,7 @@ public class Event {
     private Task task;
 
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
 
 

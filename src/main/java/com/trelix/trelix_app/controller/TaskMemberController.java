@@ -2,9 +2,8 @@ package com.trelix.trelix_app.controller;
 
 import com.trelix.trelix_app.dto.MemberDTO;
 import com.trelix.trelix_app.security.CustomUserDetails;
-import com.trelix.trelix_app.service.AuthorizationService;
 import com.trelix.trelix_app.service.TaskMemberService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -13,44 +12,31 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 public class TaskMemberController {
 
-    @Autowired
-    private TaskMemberService taskMemberService;
+    private final TaskMemberService taskMemberService;
 
-    @Autowired
-    private AuthorizationService authService;
-
-
-
-    @GetMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}/members")
-    public ResponseEntity<List<MemberDTO>> getTaskMembers(@PathVariable UUID teamId,
-                                                          @PathVariable UUID projectId,
-                                                          @PathVariable UUID taskId,
+    @GetMapping("/tasks/{taskId}/members")
+    public ResponseEntity<List<MemberDTO>> getTaskMembers(@PathVariable UUID taskId,
                                                           @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.checkTaskAccess(teamId, projectId, taskId, userDetails.getId());
-        List<MemberDTO> taskMembers = taskMemberService.getTaskMembers(taskId);
+        List<MemberDTO> taskMembers = taskMemberService.getTaskMembers(taskId, userDetails.getId());
         return ResponseEntity.ok(taskMembers);
     }
 
-    @PostMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}/members")
-    public ResponseEntity<String> assignUserToTask(@PathVariable UUID teamId,
-                                                          @PathVariable UUID projectId,
-                                                          @PathVariable UUID taskId,
-                                                          @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.checkTaskAccess(teamId, projectId, taskId, userDetails.getId());
-        taskMemberService.assignUserToTask(taskId, userDetails.getId());
-        return ResponseEntity.ok("User assigned to task successfully");
+    @PostMapping("/tasks/{taskId}/members/{userId}")
+    public ResponseEntity<Void> assignUserToTask(@PathVariable UUID taskId,
+                                                 @PathVariable UUID userId,
+                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
+        taskMemberService.assignUserToTask(taskId, userId, userDetails.getId());
+        return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}/members/{userId}")
-    public ResponseEntity<String> removeUserFromTask(@PathVariable UUID teamId,
-                                                     @PathVariable UUID projectId,
-                                                     @PathVariable UUID taskId,
+    @DeleteMapping("/tasks/{taskId}/members/{userId}")
+    public ResponseEntity<Void> removeUserFromTask(@PathVariable UUID taskId,
                                                      @PathVariable UUID userId,
                                                      @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.checkTaskAccess(teamId, projectId, taskId, userDetails.getId());
-        taskMemberService.removeUserFromTask(taskId, userId);
-        return ResponseEntity.ok("User removed from task successfully");
+        taskMemberService.removeUserFromTask(taskId, userId, userDetails.getId());
+        return ResponseEntity.noContent().build();
     }
 }

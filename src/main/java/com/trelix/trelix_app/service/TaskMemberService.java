@@ -8,6 +8,7 @@ import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.TaskMemberRepository;
 import com.trelix.trelix_app.repository.TaskRepository;
 import com.trelix.trelix_app.repository.UserRepository;
+import com.trelix.trelix_app.util.AppMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,34 +21,42 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TaskMemberService {
 
-    private final TaskService taskService;
     private final TaskMemberRepository taskMemberRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final AuthorizationService authService;
 
-    public List<MemberDTO> getTaskMembers(UUID taskId) {
+    public List<MemberDTO> getTaskMembers(UUID taskId, UUID userId) {
+        authService.checkTaskAccessByTaskId(taskId, userId);
         return taskMemberRepository.findByTaskId(taskId)
                 .stream()
-                .map(taskMember -> MemberDTO.builder().id(taskMember.getUser().getId())
-                                        .username(taskMember.getUser().getUsername())
-                                .email(taskMember.getUser().getEmail())
-                                .build()).toList();
+                .map(taskMember -> AppMapper.convertToMemberDto(taskMember.getUser()))
+                .toList();
     }
 
-    public void assignUserToTask(UUID taskId, UUID userId) {
-        Task task = taskRepository.findById(taskId).orElseThrow(() -> new ResourceNotFoundException("Task not found"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    public void assignUserToTask(UUID taskId, UUID userIdToAssign, UUID requestingUserId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
+        authService.checkProjectAdminAccess(task.getProject().getTeam().getId(), task.getProject().getId(), requestingUserId);
+        User userToAssign = userRepository.findById(userIdToAssign)
+                .orElseThrow(() -> new ResourceNotFoundException("User to assign not found with id: " + userIdToAssign));
+
+        if (taskMemberRepository.existsByTaskIdAndUserId(taskId, userIdToAssign)) {
+            return; // User is already a member
+        }
+
         TaskMember taskMember = new TaskMember();
         taskMember.setTask(task);
-        taskMember.setUser(user);
+        taskMember.setUser(userToAssign);
         taskMemberRepository.save(taskMember);
     }
 
-    public void removeUserFromTask(UUID taskId, UUID userId) {
-        Task task = taskRepository.findById(taskId).orElseThrow(() -> new ResourceNotFoundException("Task not found"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        TaskMember taskMember = taskMemberRepository.findByTaskIdAndUserId(task.getId(), user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Task member not found"));
+    public void removeUserFromTask(UUID taskId, UUID userIdToRemove, UUID requestingUserId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
+        authService.checkProjectAdminAccess(task.getProject().getTeam().getId(), task.getProject().getId(), requestingUserId);
+        TaskMember taskMember = taskMemberRepository.findByTaskIdAndUserId(taskId, userIdToRemove)
+                .orElseThrow(() -> new ResourceNotFoundException("Task member not found for the given task and user"));
         taskMemberRepository.delete(taskMember);
     }
 }

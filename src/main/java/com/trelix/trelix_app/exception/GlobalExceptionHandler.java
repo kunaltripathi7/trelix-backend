@@ -1,16 +1,17 @@
 package com.trelix.trelix_app.exception;
 
-
+import com.trelix.trelix_app.dto.ErrorResponse;
+import com.trelix.trelix_app.dto.ValidationErrorResponse;
+import com.trelix.trelix_app.enums.ErrorCode;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.ConstraintViolationException;
-import org.springframework.dao.DataAccessException;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,133 +20,112 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
-
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Standard structure for all error responses
-    private Map<String, Object> buildErrorResponse(String message, HttpStatus status) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("timestamp", LocalDateTime.now());
-        errorResponse.put("status", status.value());
-        errorResponse.put("error", status.getReasonPhrase());
-        errorResponse.put("message", message);
-        return errorResponse;
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    private ErrorResponse buildErrorResponse(String message, ErrorCode errorCode, String path) {
+        return ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .path(path)
+                .errorCode(errorCode.name())
+                .message(message)
+                .build();
     }
 
-    // Handle validation exceptions from @Valid
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRequestException(InvalidRequestException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = buildErrorResponse(ex.getMessage(), ex.getErrorCode(), request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        Map<String, Object> errors = buildErrorResponse("Validation failed", HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ValidationErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        ValidationErrorResponse errorResponse = new ValidationErrorResponse();
+        errorResponse.setTimestamp(LocalDateTime.now());
+        errorResponse.setPath(request.getRequestURI());
+        errorResponse.setErrorCode(ErrorCode.VALIDATION_FAILED.name());
+        errorResponse.setMessage("Validation failed for one or more fields.");
 
-        Map<String, String> validationErrors = ex.getBindingResult().getFieldErrors().stream()
-                .collect(Collectors.toMap(
-                        FieldError::getField,
-                        fieldError -> fieldError.getDefaultMessage() != null ? fieldError.getDefaultMessage() : "Invalid value"
-                ));
+        Map<String, String> validationErrors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(fieldError ->
+                validationErrors.put(fieldError.getField(), fieldError.getDefaultMessage()));
 
-        errors.put("details", validationErrors);
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        errorResponse.setFieldErrors(validationErrors);
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    // Handle Spring's ResponseStatusException
-    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
-        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
-        Map<String, Object> errors = buildErrorResponse(ex.getReason(), status);
-        return new ResponseEntity<>(errors, status);
-    }
-
-    // Handle malformed JSON
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
-        Map<String, Object> errors = buildErrorResponse("Malformed JSON request", HttpStatus.BAD_REQUEST);
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        logger.warn("Malformed JSON request: {}", ex.getMessage());
+        ErrorResponse errorResponse = buildErrorResponse("Malformed JSON request. Check the request body for syntax errors.", ErrorCode.MALFORMED_JSON, request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    // Handle missing request parameters
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<Map<String, Object>> handleMissingParams(MissingServletRequestParameterException ex) {
-        String message = ex.getParameterName() + " parameter is required";
-        Map<String, Object> errors = buildErrorResponse(message, HttpStatus.BAD_REQUEST);
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ErrorResponse> handleMissingParams(MissingServletRequestParameterException ex, HttpServletRequest request) {
+        String message = "Required parameter '" + ex.getParameterName() + "' is missing.";
+        ErrorResponse errorResponse = buildErrorResponse(message, ErrorCode.INVALID_REQUEST_PARAMETER, request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    // Handle type mismatch exceptions
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        String message = ex.getName() + " should be of type " + ex.getRequiredType().getSimpleName();
-        Map<String, Object> errors = buildErrorResponse(message, HttpStatus.BAD_REQUEST);
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        String requiredType = Optional.ofNullable(ex.getRequiredType()).map(Class::getSimpleName).orElse("unknown");
+        String message = "Parameter '" + ex.getName() + "' should be of type " + requiredType + ".";
+        ErrorResponse errorResponse = buildErrorResponse(message, ErrorCode.INVALID_PATH_VARIABLE, request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    // Handle JPA entity not found
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleEntityNotFound(EntityNotFoundException ex) {
-        Map<String, Object> errors = buildErrorResponse(ex.getMessage(), HttpStatus.NOT_FOUND);
-        return new ResponseEntity<>(errors, HttpStatus.NOT_FOUND);
+    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = buildErrorResponse(ex.getMessage(), ErrorCode.RESOURCE_NOT_FOUND, request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
-    // Handle constraint violations
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
-        Map<String, Object> errors = buildErrorResponse("Validation failed", HttpStatus.BAD_REQUEST);
-
-        Map<String, String> validationErrors = ex.getConstraintViolations().stream()
-                .collect(Collectors.toMap(
-                        violation -> violation.getPropertyPath().toString(),
-                        violation -> violation.getMessage()
-                ));
-
-        errors.put("details", validationErrors);
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = buildErrorResponse(ex.getMessage(), ErrorCode.RESOURCE_NOT_FOUND, request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
-    // Handle database integrity exceptions
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        Map<String, Object> errors = buildErrorResponse("Database constraint violation", HttpStatus.CONFLICT);
-        return new ResponseEntity<>(errors, HttpStatus.CONFLICT);
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex, HttpServletRequest request) {
+        logger.error("Database integrity violation: {}", ex.getMessage());
+        ErrorResponse errorResponse = buildErrorResponse("A database conflict occurred. This may be due to a duplicate entry or a foreign key constraint failure.", ErrorCode.DATABASE_CONFLICT, request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
-    // Handle general database exceptions
-    @ExceptionHandler(DataAccessException.class)
-    public ResponseEntity<Map<String, Object>> handleDataAccessException(DataAccessException ex) {
-        Map<String, Object> errors = buildErrorResponse("Database error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
-        return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    // Handle file size exceptions
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<Map<String, Object>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
-        Map<String, Object> errors = buildErrorResponse("File size exceeds maximum allowed upload size", HttpStatus.BAD_REQUEST);
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex, HttpServletRequest request) {
+        String message = "File size exceeds the maximum allowed limit. " + ex.getMessage();
+        ErrorResponse errorResponse = buildErrorResponse(message, ErrorCode.FILE_UPLOAD_MAX_SIZE_EXCEEDED, request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    // Handle 404 errors
     @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNoHandlerFoundException(NoHandlerFoundException ex) {
-        String message = "Could not find the " + ex.getHttpMethod() + " method for URL " + ex.getRequestURL();
-        Map<String, Object> errors = buildErrorResponse(message, HttpStatus.NOT_FOUND);
-        return new ResponseEntity<>(errors, HttpStatus.NOT_FOUND);
+    public ResponseEntity<ErrorResponse> handleNoHandlerFoundException(NoHandlerFoundException ex, HttpServletRequest request) {
+        String message = "The requested endpoint '" + ex.getRequestURL() + "' could not be found.";
+        ErrorResponse errorResponse = buildErrorResponse(message, ErrorCode.ENDPOINT_NOT_FOUND, request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
-    // Handle access denied (Spring Security)
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
-        Map<String, Object> errors = buildErrorResponse("Access denied", HttpStatus.FORBIDDEN);
-        return new ResponseEntity<>(errors, HttpStatus.FORBIDDEN);
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = buildErrorResponse(ex.getMessage(), ErrorCode.UNAUTHORIZED_ACCESS, request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
     }
 
-    // Handle general exceptions as fallback
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleAllUncaughtException(Exception ex) {
-        Map<String, Object> errors = buildErrorResponse("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
-        return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<ErrorResponse> handleAllUncaughtException(Exception ex, HttpServletRequest request) {
+        logger.error("An unexpected error occurred at path: {}", request.getRequestURI(), ex);
+        ErrorResponse errorResponse = buildErrorResponse("An unexpected internal error occurred. Please contact support.", ErrorCode.INTERNAL_SERVER_ERROR, request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

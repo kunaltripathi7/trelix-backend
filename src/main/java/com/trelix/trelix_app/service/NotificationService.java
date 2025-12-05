@@ -18,7 +18,7 @@ import static com.trelix.trelix_app.util.AppMapper.convertToNotificationDTO;
 @Transactional
 @RequiredArgsConstructor
 public class NotificationService {
-    private NotificationRepository notificationRepository;
+    private final NotificationRepository notificationRepository;
 
     public List<NotificationDTO> getAllNotifcations(UUID userId) {
         return notificationRepository.findByNotifierIdOrderByCreatedAtDesc(userId).stream().map(AppMapper::convertToNotificationDTO).toList();

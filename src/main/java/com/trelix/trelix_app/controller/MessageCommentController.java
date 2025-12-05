@@ -5,42 +5,47 @@ import com.trelix.trelix_app.dto.MessageSummaryDTO;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.MessageCommentService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 public class MessageCommentController {
 
-    @Autowired
-    private MessageCommentService messageCommentService;
+    private final MessageCommentService messageCommentService;
 
-
-    @PostMapping("/{channelId}/messages/{messageId}/comments")
-    public ResponseEntity<MessageSummaryDTO> addCommentToMessage(@PathVariable UUID channelId, @PathVariable UUID messageId, @Valid @RequestBody MessageRequestDTO commentRequest, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        MessageSummaryDTO messageComment = messageCommentService.addCommentToMessage(channelId, messageId, commentRequest, userDetails.getId());
+    @PostMapping("/messages/{messageId}/comments")
+    public ResponseEntity<MessageSummaryDTO> addCommentToMessage(@PathVariable UUID messageId,
+                                                                 @Valid @RequestBody MessageRequestDTO commentRequest,
+                                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
+        MessageSummaryDTO messageComment = messageCommentService.addCommentToMessage(messageId, commentRequest, userDetails.getId());
         return ResponseEntity.ok(messageComment);
     }
 
-
-    @GetMapping("/{channelId}/messages/{messageId}/comments")
-    public ResponseEntity<?> getCommentsForMessage(@PathVariable UUID channelId, @PathVariable UUID messageId, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(messageCommentService.getCommentsForMessage(channelId, messageId, userDetails.getId()));
+    @GetMapping("/messages/{messageId}/comments")
+    public ResponseEntity<List<MessageSummaryDTO>> getCommentsForMessage(@PathVariable UUID messageId,
+                                                                         @AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<MessageSummaryDTO> comments = messageCommentService.getCommentsForMessage(messageId, userDetails.getId());
+        return ResponseEntity.ok(comments);
     }
 
-    @PatchMapping("/comments/{commentId}")
-    public ResponseEntity<MessageSummaryDTO> updateComment(@PathVariable UUID commentId, @Valid @RequestBody MessageRequestDTO commentRequest, @AuthenticationPrincipal CustomUserDetails userDetails) {
+    @PutMapping("/comments/{commentId}")
+    public ResponseEntity<MessageSummaryDTO> updateComment(@PathVariable UUID commentId,
+                                                           @Valid @RequestBody MessageRequestDTO commentRequest,
+                                                           @AuthenticationPrincipal CustomUserDetails userDetails) {
         MessageSummaryDTO updatedComment = messageCommentService.updateComment(commentId, commentRequest, userDetails.getId());
         return ResponseEntity.ok(updatedComment);
     }
 
     @DeleteMapping("/comments/{commentId}")
-    public ResponseEntity<Void> deleteComment(@PathVariable UUID commentId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<Void> deleteComment(@PathVariable UUID commentId,
+                                              @AuthenticationPrincipal CustomUserDetails userDetails) {
         messageCommentService.deleteComment(commentId, userDetails.getId());
         return ResponseEntity.noContent().build();
     }
-
 }

@@ -12,7 +12,7 @@ import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.UserService;
 import com.trelix.trelix_app.util.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,16 +28,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
-    @Autowired
-    private  AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    private  JwtUtils jwtUtils;
+    private final JwtUtils jwtUtils;
 
-    @Autowired
-    private UserService userDetailsService;
+    private final UserService userDetailsService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(

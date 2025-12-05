@@ -15,6 +15,7 @@ import com.trelix.trelix_app.repository.UserRepository;
 import com.trelix.trelix_app.util.AppMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -29,9 +30,11 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final TeamUserRepository teamUserRepository;
     private final UserRepository userRepository;
-    private final AuthorizationService authorizationService;
+    private final AuthorizationService authService;
 
     public TeamResponse createTeam(TeamRequest request, UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         Team team = Team.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -42,6 +45,7 @@ public class TeamService {
 
         TeamUser teamUser = TeamUser.builder()
                 .team(team)
+                .user(user)
                 .role(Role.ROLE_ADMIN)
                 .joinedAt(LocalDateTime.now())
                 .build();
@@ -49,11 +53,14 @@ public class TeamService {
         return new TeamResponse(team.getId(), team.getName(), team.getDescription());
     }
 
-    public void joinTeam(UUID teamId, UUID userId)  {
-        if (teamUserRepository.existsByUserIdAndTeamId(userId, teamId)) return;
-        Team team = teamRepository.findById(teamId).orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+    public void joinTeam(UUID teamId, UUID userId) {
+        if (teamUserRepository.existsByUserIdAndTeamId(userId, teamId)) {
+            return;
+        }
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         TeamUser teamUser = TeamUser.builder()
                 .team(team)
                 .user(user)
@@ -63,39 +70,38 @@ public class TeamService {
         teamUserRepository.save(teamUser);
     }
 
-    public List<TeamResponse> getTeams(UUID userId) {
-        List<TeamUser> teamUserList = teamUserRepository.findByUserId(userId);
-        return teamUserList.stream().map(teamUser -> {
-            Team team = teamUser.getTeam();
-           return TeamResponse.builder().id(team.getId()).name(team.getName())
-                    .description(team.getDescription()).build();
-        }).toList();
+    public List<TeamResponse> getTeamsForUser(UUID userId) {
+        List<TeamUser> teamUsers = teamUserRepository.findByUserId(userId);
+        return teamUsers.stream()
+                .map(teamUser -> AppMapper.convertToTeamResponse(teamUser.getTeam()))
+                .toList();
     }
 
-    public TeamDetailsResponse getTeam(UUID teamId) {
+    public TeamDetailsResponse getTeam(UUID teamId, UUID userId) {
+        authService.checkTeamAccess(teamId, userId);
         Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
-        return TeamDetailsResponse.builder()
-                .id(team.getId()).name(team.getName())
-                .description(team.getDescription())
-                .members(team.getTeamUsers().stream().map(AppMapper::convertToTeamMemberDto).toList())
-                .projects(team.getProjects().stream().map(AppMapper::convertToProjectResponse).toList())
-                .channels(team.getChannels().stream().map(AppMapper::convertToChannelDto).toList())
-                .build();
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
+        return AppMapper.convertToTeamDetailsResponse(team);
     }
 
-    public List<MemberDTO> getMembers(UUID teamId) {
-        Team team = teamRepository.findById(teamId).orElseThrow(() -> new ResourceNotFoundException("Team not found"));
+    public List<MemberDTO> getMembers(UUID teamId, UUID userId) {
+        authService.checkTeamAccess(teamId, userId);
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
         return team.getTeamUsers().stream().map(AppMapper::convertToTeamMemberDto).toList();
     }
 
-    public void deleteTeam(UUID teamId) {
+    public void deleteTeam(UUID teamId, UUID userId) {
+        if (!authService.checkIfUserIsAdminInTeam(teamId, userId)) {
+            throw new AccessDeniedException("You do not have permission to delete this team.");
+        }
         teamRepository.deleteById(teamId);
     }
 
-    public void removeMember(UUID memberId, UUID userId) {
-        teamUserRepository.deleteByUserIdAndTeamId(userId, memberId);
+    public void removeMember(UUID teamId, UUID memberId, UUID requestingUserId) {
+        if (!authService.checkIfUserIsAdminInTeam(teamId, requestingUserId)) {
+            throw new AccessDeniedException("You do not have permission to remove members from this team.");
+        }
+        teamUserRepository.deleteByUserIdAndTeamId(memberId, teamId);
     }
-
 }
-

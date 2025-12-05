@@ -19,12 +19,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import static com.trelix.trelix_app.util.AppMapper.convertToMessageDetailDTO;
-
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class MessageService {
+
     private final MessageRepository messageRepository;
     private final ChannelRepository channelRepository;
     private final AuthorizationService authService;
@@ -32,60 +31,48 @@ public class MessageService {
 
     public MessageDetailDTO createMessage(UUID channelId, MessageRequestDTO messageRequest, UUID userId) {
         Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(() -> new ResourceNotFoundException("Channel related to the message can't be found."));
-        UUID projectId = channel.getProject() != null ? channel.getProject().getId() : null;
-        UUID teamId = channel.getTeam().getId();
+                .orElseThrow(() -> new ResourceNotFoundException("Channel not found with id: " + channelId));
+        authService.checkChannelAccess(channel, userId);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User couldn't be found"));
-        authService.checkMessageAccess(channelId, teamId ,projectId, userId);
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
         Message message = Message.builder()
                 .channel(channel)
                 .sender(user)
                 .content(messageRequest.getContent())
                 .createdAt(LocalDateTime.now())
                 .build();
-        return convertToMessageDetailDTO(messageRepository.save(message));
+        return AppMapper.convertToMessageDetailDTO(messageRepository.save(message));
     }
 
     public List<MessageSummaryDTO> getMessages(UUID channelId, UUID userId) {
         Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(() -> new ResourceNotFoundException("Channel related to the message can't be found."));
-        UUID projectId = channel.getProject() != null ? channel.getProject().getId() : null;
-        UUID teamId = channel.getTeam().getId();
-        authService.checkMessageAccess(channelId, teamId ,projectId, userId);
+                .orElseThrow(() -> new ResourceNotFoundException("Channel not found with id: " + channelId));
+        authService.checkChannelAccess(channel, userId);
         List<Message> messages = messageRepository.findByChannelId(channelId);
         return messages.stream().map(AppMapper::convertToMessageSummaryDTO).toList();
     }
 
-    public MessageDetailDTO getMessage(UUID messageId, UUID channelId, UUID userId) {
-        Channel channel = channelRepository.findById(channelId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Channel not found with the id" + channelId));
-        UUID projectId = channel.getProject() != null ? channel.getProject().getId() : null;
-        UUID teamId = channel.getTeam().getId();
-        authService.checkMessageAccess(channelId, teamId, projectId, userId);
+    public MessageDetailDTO getMessage(UUID messageId, UUID userId) {
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new ResourceNotFoundException("Message not found with the id" + messageId));
-        return convertToMessageDetailDTO(message);
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found with id: " + messageId));
+        authService.checkChannelAccess(message.getChannel(), userId);
+        return AppMapper.convertToMessageDetailDTO(message);
     }
 
     public MessageDetailDTO updateMessage(UUID messageId, MessageRequestDTO messageRequest, UUID userId) {
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new ResourceNotFoundException("Message not found with the id" + messageId));
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found with id: " + messageId));
         authService.verifyMessageOwner(message.getSender().getId(), userId);
         message.setContent(messageRequest.getContent());
-        return convertToMessageDetailDTO(messageRepository.save(message));
+        message.setUpdatedAt(LocalDateTime.now());
+        return AppMapper.convertToMessageDetailDTO(messageRepository.save(message));
     }
 
-    public void deleteMessage(UUID channelId, UUID messageId, UUID userId) {
-        Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(() -> new ResourceNotFoundException("Channel related to the message can't be found."));
-        UUID projectId = channel.getProject() != null ? channel.getProject().getId() : null;
-        UUID teamId = channel.getTeam().getId();
-        authService.deleteMessageAccess(channelId, teamId, projectId, userId);
+    public void deleteMessage(UUID messageId, UUID userId) {
         Message message = messageRepository.findById(messageId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Message not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found with id: " + messageId));
+        authService.verifyMessageOwner(message, userId);
         messageRepository.delete(message);
-
     }
-
 }

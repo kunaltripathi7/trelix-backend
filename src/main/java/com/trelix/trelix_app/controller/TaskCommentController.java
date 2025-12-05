@@ -2,9 +2,8 @@ package com.trelix.trelix_app.controller;
 
 import com.trelix.trelix_app.dto.TaskCommentDTO;
 import com.trelix.trelix_app.security.CustomUserDetails;
-import com.trelix.trelix_app.service.AuthorizationService;
 import com.trelix.trelix_app.service.TaskCommentService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -13,68 +12,45 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 public class TaskCommentController {
 
-    @Autowired
-    private AuthorizationService authService;
+    private final TaskCommentService taskCommentService;
 
-    @Autowired
-    private TaskCommentService taskCommentService;
-
-    @PostMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}/comments")
-    public ResponseEntity<TaskCommentDTO> createComment(@PathVariable UUID teamId,
-                                                               @PathVariable UUID projectId,
-                                                               @PathVariable UUID taskId,
-                                                               @RequestBody TaskCommentDTO commentDTO,
-                                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.checkProjectAccess(teamId, projectId, userDetails.getId());
-        TaskCommentDTO newTaskCommentCreated = taskCommentService.createComment(taskId, commentDTO, userDetails.getId());
-        return ResponseEntity.ok(newTaskCommentCreated);
+    @PostMapping("/tasks/{taskId}/comments")
+    public ResponseEntity<TaskCommentDTO> createComment(@PathVariable UUID taskId,
+                                                        @RequestBody TaskCommentDTO commentDTO,
+                                                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+        TaskCommentDTO newComment = taskCommentService.createComment(taskId, commentDTO, userDetails.getId());
+        return ResponseEntity.ok(newComment);
     }
 
-    @GetMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}/comments")
-    public ResponseEntity<List<TaskCommentDTO>> getComments(@PathVariable UUID teamId,
-                                                            @PathVariable UUID projectId,
-                                                            @PathVariable UUID taskId,
+    @GetMapping("/tasks/{taskId}/comments")
+    public ResponseEntity<List<TaskCommentDTO>> getComments(@PathVariable UUID taskId,
                                                             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.checkProjectAccess(teamId, projectId, userDetails.getId());
-        List<TaskCommentDTO> comments = taskCommentService.getComments(taskId);
+        List<TaskCommentDTO> comments = taskCommentService.getComments(taskId, userDetails.getId());
         return ResponseEntity.ok(comments);
     }
 
-    @GetMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}/comments/{commentId}")
-    public ResponseEntity<TaskCommentDTO> getComment(@PathVariable UUID teamId,
-                                                     @PathVariable UUID projectId,
-                                                     @PathVariable UUID taskId,
-                                                     @PathVariable UUID commentId,
+    @GetMapping("/comments/{commentId}")
+    public ResponseEntity<TaskCommentDTO> getComment(@PathVariable UUID commentId,
                                                      @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.checkProjectAccess(teamId, projectId, userDetails.getId());
-        TaskCommentDTO comment = taskCommentService.getComment(taskId, commentId);
+        TaskCommentDTO comment = taskCommentService.getComment(commentId, userDetails.getId());
         return ResponseEntity.ok(comment);
     }
 
-    @PutMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}/comments/{commentId}")
-    public ResponseEntity<TaskCommentDTO> updateComment(@PathVariable UUID teamId,
-                                                        @PathVariable UUID projectId,
-                                                        @PathVariable UUID taskId,
-                                                        @PathVariable UUID commentId,
+    @PutMapping("/comments/{commentId}")
+    public ResponseEntity<TaskCommentDTO> updateComment(@PathVariable UUID commentId,
                                                         @RequestBody TaskCommentDTO commentDTO,
                                                         @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.checkProjectAccess(teamId, projectId, userDetails.getId());
-        TaskCommentDTO updatedComment = taskCommentService.updateComment(taskId, commentId, commentDTO, userDetails.getId());
+        TaskCommentDTO updatedComment = taskCommentService.updateComment(commentId, commentDTO, userDetails.getId());
         return ResponseEntity.ok(updatedComment);
     }
 
-    @DeleteMapping("/teams/{teamId}/projects/{projectId}/tasks/{taskId}/comments/{commentId}")
-    public ResponseEntity<Void> deleteComment(@PathVariable UUID teamId,
-                                                @PathVariable UUID projectId,
-                                                @PathVariable UUID taskId,
-                                                @PathVariable UUID commentId,
-                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
-        authService.checkProjectAccess(teamId, projectId, userDetails.getId());
-        taskCommentService.deleteComment(taskId, commentId, userDetails.getId());
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(@PathVariable UUID commentId,
+                                              @AuthenticationPrincipal CustomUserDetails userDetails) {
+        taskCommentService.deleteComment(commentId, userDetails.getId());
         return ResponseEntity.noContent().build();
     }
-
-
 }

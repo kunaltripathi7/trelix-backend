@@ -41,24 +41,23 @@ public class TaskService {
 
     private LocalDateTime parseDateTimeWithDefaultTime(String input) {
         try {
-            DateTimeFormatter fullFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd[ HH:mm]");
-            return LocalDateTime.parse(input, fullFormatter);
+            return LocalDateTime.parse(input, DateTimeFormatter.ofPattern("yyyy-MM-dd[ HH:mm]"));
         } catch (DateTimeParseException e) {
-            LocalDate date = LocalDate.parse(input, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            return date.atTime(9, 0);
+            return LocalDate.parse(input, DateTimeFormatter.ofPattern("yyyy-MM-dd")).atTime(9, 0);
         }
     }
 
     public TaskDTO createTask(TaskRequest request, UUID projectId, UUID userId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-        UUID teamId = project.getTeam().getId();
-        authService.checkProjectAccess(teamId, projectId, userId);
-        User user = null;
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + projectId));
+        authService.checkProjectAccess(project.getTeam().getId(), projectId, userId);
+
+        User assignedUser = null;
         if (request.getAssignedTo() != null) {
-            user = userRepository.findByEmail(request.getAssignedTo())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            assignedUser = userRepository.findByEmail(request.getAssignedTo())
+                    .orElseThrow(() -> new ResourceNotFoundException("User to assign not found with email: " + request.getAssignedTo()));
         }
+
         Task task = Task.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -68,53 +67,46 @@ public class TaskService {
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .project(project)
-                .assignedTo(user)
+                .assignedTo(assignedUser)
                 .build();
         return AppMapper.convertToTaskDTO(taskRepository.save(task));
     }
 
-
     public List<TaskDTO> getTasksByProjectId(UUID projectId, UUID userId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-        UUID teamId = project.getTeam().getId();
-        authService.checkProjectAccess(teamId, projectId, userId);
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + projectId));
+        authService.checkProjectAccess(project.getTeam().getId(), projectId, userId);
         List<Task> tasks = taskRepository.findByProjectId(project.getId());
-        return tasks.stream()
-                .map(AppMapper::convertToTaskDTO)
-                .toList();
+        return tasks.stream().map(AppMapper::convertToTaskDTO).toList();
     }
 
-    public TaskDetailsDTO getTaskById(UUID taskId, UUID projectId, UUID userId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-        UUID teamId = project.getTeam().getId();
-        authService.checkProjectAccess(teamId, projectId, userId);
+    public TaskDetailsDTO getTaskById(UUID taskId, UUID userId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
+        authService.checkTaskAccessByTaskId(taskId, userId);
         return AppMapper.convertToTaskDetailsDTO(task);
     }
 
-    public TaskDTO updateTask(UUID taskId, UUID projectId, TaskRequest taskRequest, UUID userId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-        UUID teamId = project.getTeam().getId();
-        authService.checkProjectAccess(teamId, projectId, userId);
+    public TaskDTO updateTask(UUID taskId, TaskRequest taskRequest, UUID userId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
+        authService.checkTaskAccessByTaskId(taskId, userId);
+
         if (!task.getStatus().toString().equals(taskRequest.getStatus())) {
+            User changedByUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
             TaskStatusChange statusChange = TaskStatusChange.builder()
                     .task(task)
                     .previousStatus(task.getStatus())
                     .newStatus(TaskStatus.valueOf(taskRequest.getStatus()))
                     .changedAt(LocalDateTime.now())
-                    .changedBy(userRepository.findById(userId)
-                            .orElseThrow(() -> new ResourceNotFoundException("User not found")))
+                    .changedBy(changedByUser)
                     .build();
-        taskStatusChangeRepository.save(statusChange);
+            taskStatusChangeRepository.save(statusChange);
         }
+
         task.setTitle(taskRequest.getTitle());
-        task.setDescription(taskRequest.getDescription() != null ? taskRequest.getDescription() : task.getDescription());
+        task.setDescription(taskRequest.getDescription());
         task.setStatus(TaskStatus.valueOf(taskRequest.getStatus()));
         task.setPriority(TaskPriority.valueOf(taskRequest.getPriority()));
         task.setDueDate(parseDateTimeWithDefaultTime(taskRequest.getDueDate()));
@@ -122,22 +114,19 @@ public class TaskService {
         return AppMapper.convertToTaskDTO(taskRepository.save(task));
     }
 
-    public void deleteTask(UUID taskId, UUID projectId, UUID userId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-        UUID teamId = project.getTeam().getId();
-        authService.checkProjectAccess(teamId, projectId, userId);
+    public void deleteTask(UUID taskId, UUID userId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
+        authService.checkTaskAccessByTaskId(taskId, userId);
         taskRepository.delete(task);
     }
 
-    public List<TaskDTO> searchTasks(UUID projectId, TaskSearchCriteria taskSearchCriteria, UUID id) {
+    public List<TaskDTO> searchTasks(UUID projectId, TaskSearchCriteria criteria, UUID userId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-        UUID teamId = project.getTeam().getId();
-        authService.checkProjectAccess(teamId, projectId, id);
-        return taskRepository.findAll(TaskSpecification.byCriteria(taskSearchCriteria))
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + projectId));
+        authService.checkProjectAccess(project.getTeam().getId(), projectId, userId);
+        criteria.setProjectId(projectId);
+        return taskRepository.findAll(TaskSpecification.byCriteria(criteria))
                 .stream().map(AppMapper::convertToTaskDTO).toList();
     }
 }

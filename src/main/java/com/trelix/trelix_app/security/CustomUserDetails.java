@@ -1,7 +1,6 @@
 package com.trelix.trelix_app.security;
 
 import com.trelix.trelix_app.entity.User;
-import lombok.Data;
 import lombok.Getter;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

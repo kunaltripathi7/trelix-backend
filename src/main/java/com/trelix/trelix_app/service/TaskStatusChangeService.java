@@ -6,20 +6,23 @@ import com.trelix.trelix_app.repository.TaskStatusChangeRepository;
 import com.trelix.trelix_app.util.AppMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
-@Setter
+@Service
 @Transactional
 @RequiredArgsConstructor
 public class TaskStatusChangeService {
 
-    private TaskStatusChangeRepository taskStatusChangeRepository;
+    private final TaskStatusChangeRepository taskStatusChangeRepository;
 
-    public TaskStatusChangeDTO getChangesByTaskId(UUID taskID) {
-        TaskStatusChange taskStatusChange = taskStatusChangeRepository.findById(taskID)
-                .orElseThrow(() -> new RuntimeException("Task status change not found"));
-        return AppMapper.convertToTaskStatusChangeDTO(taskStatusChange);
+    public List<TaskStatusChangeDTO> getChangesByTaskId(UUID taskID) {
+        List<TaskStatusChange> taskStatusChanges = taskStatusChangeRepository.findByTaskId(taskID);
+        // It's better to return an empty list than to throw an error if no changes are found.
+        return taskStatusChanges.stream()
+                .map(AppMapper::convertToTaskStatusChangeDTO)
+                .toList();
     }
 }
