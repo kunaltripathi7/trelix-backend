@@ -2,8 +2,10 @@ package com.trelix.trelix_app.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.UUID;
 
 @Entity
 @Table(name = "messages")
@@ -12,23 +14,30 @@ import java.util.*;
 @AllArgsConstructor
 @Builder
 public class Message {
-    @Id @GeneratedValue
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne @JoinColumn(name = "channel_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "channel_id")
     private Channel channel;
 
-    @ManyToOne @JoinColumn(name = "sender_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "direct_message_id")
+    private DirectMessage directMessage;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
+    @Column(nullable = false)
     private String content;
+
+    @Column(name = "edited_at")
+    private LocalDateTime editedAt;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
-
-    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL)
-    private List<MessageComment> comments = new ArrayList<>();
-
-    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL)
-    private List<Attachment> attachments = new ArrayList<>();
 }

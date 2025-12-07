@@ -1,7 +1,7 @@
 package com.trelix.trelix_app.service;
 
 import com.trelix.trelix_app.entity.User;
-import com.trelix.trelix_app.enums.Role;
+import com.trelix.trelix_app.enums.TeamRole;
 import com.trelix.trelix_app.repository.UserRepository;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import jakarta.transaction.Transactional;
@@ -34,16 +34,16 @@ public class UserService implements UserDetailsService {
         return new CustomUserDetails(user);
     }
 
-    public User registerUser(String email, String password, String username, Role role) {
+    public User registerUser(String email, String password, String username, TeamRole teamRole) {
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Username already exists");
         }
 
         User user = User.builder()
                 .email(email)
-                .username(username)
+                .name(username)
                 .password(passwordEncoder.encode(password))
-                .role(role)
+                .teamRole(teamRole)
                 .enabled(true)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())

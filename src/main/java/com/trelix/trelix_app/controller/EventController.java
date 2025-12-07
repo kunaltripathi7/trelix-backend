@@ -1,61 +1,95 @@
 package com.trelix.trelix_app.controller;
 
 import com.trelix.trelix_app.dto.CreateEventRequest;
-import com.trelix.trelix_app.dto.EventDTO;
+import com.trelix.trelix_app.dto.EventResponse;
+import com.trelix.trelix_app.dto.PagedEventResponse;
 import com.trelix.trelix_app.dto.UpdateEventRequest;
-import com.trelix.trelix_app.security.CustomUserDetails;
+import com.trelix.trelix_app.enums.EventEntityType;
 import com.trelix.trelix_app.service.EventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.util.List;
+import java.net.URI;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/v1/events")
 @RequiredArgsConstructor
-@RequestMapping("/events")
+@Validated
 public class EventController {
 
     private final EventService eventService;
 
     @PostMapping
-    public ResponseEntity<EventDTO> createEvent(@Valid @RequestBody CreateEventRequest eventRequest,
-                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
-        EventDTO createdEvent = eventService.createEvent(eventRequest, userDetails.getId());
-        return ResponseEntity.ok(createdEvent);
-    }
+    public ResponseEntity<EventResponse> createEvent(
+            @Valid @RequestBody CreateEventRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-    @GetMapping("/{eventId}")
-    public ResponseEntity<EventDTO> getEvent(@PathVariable UUID eventId,
-                                             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        EventDTO event = eventService.getEvent(eventId, userDetails.getId());
-        return ResponseEntity.ok(event);
+        UUID creatorId = UUID.fromString(userDetails.getUsername());
+        EventResponse response = eventService.createEvent(request, creatorId);
+
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(response.id())
+                .toUri();
+
+        return ResponseEntity.created(location).body(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<EventDTO>> getEvents(@RequestParam(required = false) UUID teamId,
-                                                    @RequestParam(required = false) UUID projectId,
-                                                    @RequestParam(required = false) UUID taskId,
-                                                    @AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<EventDTO> events = eventService.getEvents(teamId, projectId, taskId, userDetails.getId());
-        return ResponseEntity.ok(events);
+    public ResponseEntity<PagedEventResponse> getEvents(
+            @RequestParam(required = false) EventEntityType entityType,
+            @RequestParam(required = false) UUID entityId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        PagedEventResponse response = eventService.getEvents(entityType, entityId, startDate, endDate, page, size, requesterId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{eventId}")
+    public ResponseEntity<EventResponse> getEventById(
+            @PathVariable UUID eventId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        EventResponse response = eventService.getEventById(eventId, requesterId);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{eventId}")
-    public ResponseEntity<EventDTO> updateEvent(@PathVariable UUID eventId,
-                                                @Valid @RequestBody UpdateEventRequest eventRequest,
-                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
-        EventDTO updatedEvent = eventService.updateEvent(eventId, eventRequest, userDetails.getId());
-        return ResponseEntity.ok(updatedEvent);
+    public ResponseEntity<EventResponse> updateEvent(
+            @PathVariable UUID eventId,
+            @Valid @RequestBody UpdateEventRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        EventResponse response = eventService.updateEvent(eventId, request, requesterId);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{eventId}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable UUID eventId,
-                                            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        eventService.deleteEvent(eventId, userDetails.getId());
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<Void> deleteEvent(
+            @PathVariable UUID eventId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        eventService.deleteEvent(eventId, requesterId);
         return ResponseEntity.noContent().build();
     }
 }

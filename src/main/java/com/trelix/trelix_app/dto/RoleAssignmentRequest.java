@@ -1,20 +1,23 @@
 package com.trelix.trelix_app.dto;
 
-
-import com.trelix.trelix_app.enums.Role;
-import jakarta.validation.constraints.Email;
+import com.trelix.trelix_app.enums.TeamRole;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class RoleAssignmentRequest {
-    @NotNull
-    @Email(message = "Email should be valid")
-    private String email;
 
-    @NotNull
-    private Role newRole;
+    @NotNull(message = "User ID cannot be null")
+    private UUID userId;
+
+    @NotNull(message = "Role cannot be null")
+    private TeamRole role;
 }
-

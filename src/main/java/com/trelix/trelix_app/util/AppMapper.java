@@ -3,17 +3,54 @@ package com.trelix.trelix_app.util;
 import com.trelix.trelix_app.dto.*;
 import com.trelix.trelix_app.entity.*;
 
+import java.util.stream.Collectors;
+
 public class AppMapper {
-    public static MemberDTO convertToTeamMemberDto(TeamUser teamUser) {
-        User member = teamUser.getUser();
+
+    public static MemberDTO convertToMemberDto(User user) {
         return MemberDTO.builder()
-                .id(member.getId())
-                .username(member.getUsername())
-                .email(member.getEmail())
-                .role(teamUser.getRole().toString())
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
                 .build();
     }
 
+    public static MemberDTO convertToTeamMemberDto(TeamUser teamUser) {
+        MemberDTO dto = convertToMemberDto(teamUser.getUser());
+        dto.setRole(teamUser.getRole().toString());
+        return dto;
+    }
+
+    public static MemberDTO convertToProjectMemberDto(ProjectMember projectMember) {
+        MemberDTO dto = convertToMemberDto(projectMember.getUser());
+        dto.setRole(projectMember.getRole().toString());
+        return dto;
+    }
+
+    public static MemberDTO convertToTaskMemberDto(TaskMember taskMember) {
+        MemberDTO dto = convertToMemberDto(taskMember.getUser());
+        dto.setRole(taskMember.getRole().toString());
+        return dto;
+    }
+
+    public static TeamResponse convertToTeamResponse(Team team) {
+        return TeamResponse.builder()
+                .id(team.getId())
+                .name(team.getName())
+                .description(team.getDescription())
+                .build();
+    }
+
+    public static TeamDetailsResponse convertToTeamDetailsResponse(Team team) {
+        return TeamDetailsResponse.builder()
+                .id(team.getId())
+                .name(team.getName())
+                .description(team.getDescription())
+                .members(team.getTeamUsers().stream().map(AppMapper::convertToTeamMemberDto).collect(Collectors.toList()))
+                .projects(team.getProjects().stream().map(AppMapper::convertToProjectResponse).collect(Collectors.toList()))
+                .channels(team.getChannels().stream().map(AppMapper::convertToChannelDto).collect(Collectors.toList()))
+                .build();
+    }
 
     public static ProjectDetailResponse convertToProjectDetailResponse(Project project) {
         return ProjectDetailResponse.builder()
@@ -22,8 +59,8 @@ public class AppMapper {
                 .description(project.getDescription())
                 .status(project.getStatus().toString())
                 .createdAt(project.getCreatedAt())
-                .tasks(project.getTasks().stream().map(AppMapper::convertToTaskDTO).toList())
-                .channels(project.getChannels().stream().map(AppMapper::convertToChannelDto).toList())
+                .tasks(project.getTasks().stream().map(AppMapper::convertToTaskDTO).collect(Collectors.toList()))
+                .channels(project.getChannels().stream().map(AppMapper::convertToChannelDto).collect(Collectors.toList()))
                 .build();
     }
 
@@ -35,7 +72,6 @@ public class AppMapper {
                 .status(project.getStatus().toString())
                 .build();
     }
-
 
     public static ChannelDTO convertToChannelDto(Channel channel) {
         return ChannelDTO.builder()
@@ -49,7 +85,6 @@ public class AppMapper {
                 .build();
     }
 
-
     public static TaskDTO convertToTaskDTO(Task task) {
         return TaskDTO.builder()
                 .id(task.getId())
@@ -60,8 +95,7 @@ public class AppMapper {
                 .dueDate(task.getDueDate())
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
-                .assignedToId(task.getAssignedTo() != null ? task.getAssignedTo().getId() : null)
-                .assignedToName(task.getAssignedTo() != null ? task.getAssignedTo().getUsername() : null)
+                .members(task.getTaskMembers().stream().map(AppMapper::convertToTaskMemberDto).collect(Collectors.toList()))
                 .build();
     }
 
@@ -75,12 +109,11 @@ public class AppMapper {
                 .dueDate(task.getDueDate())
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
-                .assignedToId(task.getAssignedTo() != null ? task.getAssignedTo().getId() : null)
-                .assignedToName(task.getAssignedTo() != null ? task.getAssignedTo().getUsername() : null)
-                .comments(task.getComments() != null ? task.getComments().stream().map(AppMapper::convertToCommentDTO).toList() : null)
-                .attachments(task.getAttachments() != null ? task.getAttachments().stream().map(AppMapper::convertToAttachmentDTO).toList() : null)
-                .statusChanges(task.getStatusChanges() != null ? task.getStatusChanges().stream().map(AppMapper::convertToTaskStatusChangeDTO).toList() : null)
-                .events(task.getEvents() != null ? task.getEvents().stream().map(AppMapper::convertToEventDTO).toList() : null)
+                .members(task.getTaskMembers().stream().map(AppMapper::convertToTaskMemberDto).collect(Collectors.toList()))
+                .comments(task.getComments().stream().map(AppMapper::convertToCommentDTO).collect(Collectors.toList()))
+                .attachments(task.getAttachments().stream().map(AppMapper::convertToAttachmentDTO).collect(Collectors.toList()))
+                .statusChanges(task.getStatusChanges().stream().map(AppMapper::convertToTaskStatusChangeDTO).collect(Collectors.toList()))
+                .events(task.getEvents().stream().map(AppMapper::convertToEventDTO).collect(Collectors.toList()))
                 .build();
     }
 
@@ -89,22 +122,23 @@ public class AppMapper {
                 .id(event.getId().toString())
                 .title(event.getTitle())
                 .description(event.getDescription())
-                .startTime(event.getCreatedAt())
+                .startTime(event.getStartTime())
                 .endTime(event.getEndTime())
                 .projectId(event.getProject() != null ? event.getProject().getId().toString() : null)
                 .teamId(event.getTeam() != null ? event.getTeam().getId().toString() : null)
                 .taskId(event.getTask() != null ? event.getTask().getId().toString() : null)
-                .createdBy(event.getCreatedBy() != null ? event.getCreatedBy().toString() : null)
-                .createdAt(event.getCreatedAt() != null ? event.getCreatedAt() : null)
+                .createdBy(event.getCreatedBy() != null ? event.getCreatedBy().getId().toString() : null)
+                .createdAt(event.getCreatedAt())
                 .build();
     }
 
-    public static TaskCommentDTO convertToCommentDTO(TaskComment comment) {
-        return TaskCommentDTO.builder()
+    public static CommentDTO convertToCommentDTO(Comment comment) {
+        return CommentDTO.builder()
                 .id(comment.getId())
+                .taskId(comment.getTask() != null ? comment.getTask().getId() : null)
+                .messageId(comment.getMessage() != null ? comment.getMessage().getId() : null)
+                .user(convertToMemberDto(comment.getUser()))
                 .content(comment.getContent())
-                .authorId(comment.getUser() != null ? comment.getUser().getId() : null)
-                .authorName(comment.getUser() != null ? comment.getUser().getUsername() : null)
                 .createdAt(comment.getCreatedAt())
                 .build();
     }
@@ -119,21 +153,21 @@ public class AppMapper {
                 .createdAt(attachment.getCreatedAt())
                 .build();
     }
-    public static Attachment convertToAttachment(AttachmentDTO attachmentDTO, User uploadedBy, Task task, Message message) {
-        return Attachment.builder()
-                .fileName(attachmentDTO.getFileName())
-                .url(attachmentDTO.getFileUrl())
-                .fileType(attachmentDTO.getFileType())
-                .fileSize(attachmentDTO.getFileSize())
-                .uploadedBy(uploadedBy)
-                .task(task)
-                .message(message)
-                .createdAt(attachmentDTO.getCreatedAt())
-                .build();
 
+    public static AttachmentResponse convertToAttachmentResponse(Attachment attachment, User uploader) {
+        return new AttachmentResponse(
+                attachment.getId(),
+                attachment.getFileName(),
+                attachment.getFileType(),
+                attachment.getFileSize(),
+                attachment.getUrl(),
+                attachment.getUploadedBy(),
+                uploader != null ? uploader.getUsername() : null,
+                attachment.getEntityType(),
+                attachment.getEntityId(),
+                attachment.getCreatedAt()
+        );
     }
-
-
 
     public static TaskStatusChangeDTO convertToTaskStatusChangeDTO(TaskStatusChange taskStatusChange) {
         return TaskStatusChangeDTO.builder()
@@ -150,9 +184,9 @@ public class AppMapper {
                 .content(message.getContent())
                 .senderId(message.getSender() != null ? message.getSender().getId() : null)
                 .sentAt(message.getCreatedAt())
-                .comments(message.getComments() != null ? message.getComments().stream().map(AppMapper::convertToMessageCommentDTO).toList() : null)
+                .comments(message.getComments().stream().map(AppMapper::convertToCommentDTO).collect(Collectors.toList()))
                 .senderUsername(message.getSender() != null ? message.getSender().getUsername() : null)
-                .attachments(message.getAttachments() != null ? message.getAttachments().stream().map(AppMapper::convertToAttachmentDTO).toList() : null)
+                .attachments(message.getAttachments().stream().map(AppMapper::convertToAttachmentDTO).collect(Collectors.toList()))
                 .build();
     }
 
@@ -163,26 +197,6 @@ public class AppMapper {
                 .senderId(message.getSender().getId())
                 .sentAt(message.getCreatedAt())
                 .senderUsername(message.getSender().getUsername())
-                .build();
-    }
-
-    public static MessageCommentDTO convertToMessageCommentDTO(MessageComment comment) {
-        return MessageCommentDTO.builder()
-                .id(comment.getId())
-                .username(comment.getUser() != null ? comment.getUser().getUsername() : null)
-                .userId(comment.getUser() != null ? comment.getUser().getId() : null)
-                .content(comment.getContent())
-                .createdAt(comment.getCreatedAt())
-                .build();
-    }
-
-    public static MessageSummaryDTO convertToMessageSummaryDTO(MessageComment comment) {
-        return MessageSummaryDTO.builder()
-                .id(comment.getId())
-                .content(comment.getContent())
-                .senderId(comment.getUser() != null ? comment.getUser().getId() : null)
-                .sentAt(comment.getCreatedAt())
-                .senderUsername(comment.getUser() != null ? comment.getUser().getUsername() : null)
                 .build();
     }
 

@@ -22,6 +22,5 @@ public class TaskDTO {
     private LocalDateTime dueDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private UUID assignedToId;
-    private String assignedToName;
+    private List<MemberDTO> members;
 }

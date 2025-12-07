@@ -22,9 +22,8 @@ public class TaskDetailsDTO {
     private LocalDateTime dueDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private UUID assignedToId;
-    private String assignedToName;
-    private List<TaskCommentDTO> comments;
+    private List<MemberDTO> members;
+    private List<CommentDTO> comments;
     private List<AttachmentDTO> attachments;
     private List<TaskStatusChangeDTO> statusChanges;
     private List<EventDTO> events;

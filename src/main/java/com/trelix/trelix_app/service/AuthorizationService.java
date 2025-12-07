@@ -1,7 +1,8 @@
 package com.trelix.trelix_app.service;
 
 import com.trelix.trelix_app.entity.*;
-import com.trelix.trelix_app.enums.Role;
+import com.trelix.trelix_app.enums.TeamRole;
+import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -11,47 +12,49 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class  AuthorizationService {
+public class AuthorizationService {
 
     private final TeamUserRepository teamUserRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final TaskMemberRepository taskMemberRepository;
     private final TaskRepository taskRepository;
     private final MessageRepository messageRepository;
-
+    private final ChannelRepository channelRepository;
 
     public boolean checkIfUserIsAdminInTeam(UUID teamId, UUID userId) {
-        return teamUserRepository.findByTeamIdAndUserIdAndRole(teamId, userId, Role.ROLE_ADMIN).isPresent();
+        return teamUserRepository.findByTeamIdAndUserIdAndRole(teamId, userId, TeamRole.ROLE_ADMIN).isPresent();
     }
 
     public boolean checkIfUserIsMemberInTeam(UUID teamId, UUID userId) {
-        return teamUserRepository.findByTeamIdAndUserIdAndRole(teamId, userId, Role.ROLE_MEMBER).isPresent();
+        return teamUserRepository.findByTeamIdAndUserId(teamId, userId).isPresent();
     }
 
     public boolean checkIfUserIsMemberInProject(UUID projectId, UUID userId) {
-        return projectMemberRepository.findByProjectIdAndUserIdAndRole(projectId, userId, Role.ROLE_MEMBER).isPresent();
+        return projectMemberRepository.findByProjectIdAndUserId(projectId, userId).isPresent();
     }
 
     public boolean checkIfUserIsAdminInProject(UUID projectId, UUID userId) {
-     return projectMemberRepository.findByProjectIdAndUserIdAndRole(projectId, userId, Role.ROLE_ADMIN).isPresent();
+        return projectMemberRepository.findByProjectIdAndUserIdAndRole(projectId, userId, TeamRole.ROLE_ADMIN).isPresent();
     }
 
+    // Generic check for project access (member or admin)
     public void checkProjectAccess(UUID teamId, UUID projectId, UUID userId) {
         if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsMemberInProject(projectId, userId) && !checkIfUserIsAdminInProject(projectId, userId)) {
-            throw new AccessDeniedException("User does not have access to this project");
+            throw new AccessDeniedException("User does not have access to this project.");
         }
-
     }
 
+    // Generic check for team access (member or admin)
     public void checkTeamAccess(UUID teamId, UUID userId) {
         if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsMemberInTeam(teamId, userId)) {
-            throw new AccessDeniedException("User does not have access to this team");
+            throw new AccessDeniedException("User does not have access to this team.");
         }
     }
 
+    // Specific check for task access (member of task, project, or team admin)
     public void checkTaskAccess(UUID teamId, UUID projectId, UUID taskId, UUID userId) {
         if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsMemberInTask(taskId, userId) && !checkIfUserIsAdminInProject(projectId, userId)) {
-            throw new AccessDeniedException("User does not have access to this task");
+            throw new AccessDeniedException("User does not have access to this task.");
         }
     }
 
@@ -59,24 +62,17 @@ public class  AuthorizationService {
         return taskMemberRepository.findByTaskIdAndUserId(taskId, userId).isPresent();
     }
 
+    // Check if user is admin of project or team
     public void checkProjectAdminAccess(UUID teamId, UUID projectId, UUID userId) {
         if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsAdminInProject(projectId, userId)) {
-            throw new AccessDeniedException("User does not have access to this project");
+            throw new AccessDeniedException("User does not have admin access to this project.");
         }
     }
 
-    public void checkMessageAccess(Channel channel, UUID userId) {
-        Project project = channel.getProject();
-        if (project == null) {
-            checkTeamAccess(channel.getTeam().getId(), userId);
-        } else {
-            checkProjectAccess(project.getTeam().getId(), project.getId(), userId);
-        }
-    }
-
+    // Helper to get task and then check access
     public void checkTaskAccessByTaskId(UUID taskId, UUID userId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new AccessDeniedException("Access denied"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
 
         checkTaskAccess(task.getProject().getTeam().getId(),
                 task.getProject().getId(),
@@ -84,72 +80,106 @@ public class  AuthorizationService {
                 userId);
     }
 
-    public void checkMessageAccessByMessageId(UUID messageId, UUID userId) {
-        Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new AccessDeniedException("Access denied"));
-
-        Channel channel = message.getChannel();
-        checkMessageAccess(channel, userId);
-    }
-
-
-    public void verifyMessageOwner(UUID senderId, UUID userId) {
-        if (!senderId.equals(userId)) throw new AccessDeniedException("User doesn't have permission to edit this message.");
-    }
-    
-    public void deleteMessageAccess(MessageComment comment, UUID userId) {
-        Channel channel = comment.getMessage().getChannel();
-        Project project = channel.getProject(); // This can be null
-        Team team = channel.getTeam();
-
-        if (checkIfUserIsAdminInTeam(team.getId(), userId) || (project != null && checkIfUserIsAdminInProject(project.getId(), userId))) return;
-
-        verifyMessageOwner(comment.getUser().getId(), userId);
-    }
-
+    // Check access to a channel (member of project/team or admin)
     public void checkChannelAccess(Channel channel, UUID userId) {
         Project project = channel.getProject();
         Team team = channel.getTeam();
 
         if (project != null) {
-            if (!checkIfUserIsMemberInProject(project.getId(), userId) && !checkIfUserIsAdminInProject(project.getId(), userId) && !checkIfUserIsAdminInTeam(team.getId(), userId)) {
+            if (!checkIfUserIsMemberInProject(project.getId(), userId) && !checkIfUserIsAdminInProject(project.getId(), userId) && (team != null && !checkIfUserIsAdminInTeam(team.getId(), userId))) {
                 throw new AccessDeniedException("User does not have access to this project channel.");
             }
-        } else {
+        } else if (team != null) {
             checkTeamAccess(team.getId(), userId);
+        } else {
+            // Ad-hoc channel without team/project - maybe public or specific access rules
+            // For now, deny if no team/project and no specific rule
+            throw new AccessDeniedException("Access denied to ad-hoc channel.");
         }
-
     }
 
+    // Check admin access for a channel
     public void checkChannelAdminAccess(Channel channel, UUID userId) {
         Project project = channel.getProject();
         Team team = channel.getTeam();
+
         if (project != null) {
-            if (!checkIfUserIsAdminInProject(project.getId(), userId) && !checkIfUserIsAdminInTeam(team.getId(), userId)) {
-                throw new AccessDeniedException("User doesn't have Access to update this channel.");
+            if (!checkIfUserIsAdminInProject(project.getId(), userId) && (team != null && !checkIfUserIsAdminInTeam(team.getId(), userId))) {
+                throw new AccessDeniedException("User does not have admin access to update this channel.");
             }
-        } else {
+        } else if (team != null) {
             checkIfUserIsAdminInTeam(team.getId(), userId);
+        } else {
+            throw new AccessDeniedException("Admin access denied to ad-hoc channel.");
         }
     }
 
+    // Verify if the user is the owner of a message
+    public boolean verifyMessageOwner(Message message, UUID userId) {
+        return message.getSender().getId().equals(userId);
+    }
 
+    // Check permissions for deleting a message
+    public void checkMessageDeleteAccess(Message message, UUID userId) {
+        if (verifyMessageOwner(message, userId)) return; // Owner can delete
+
+        Channel channel = message.getChannel();
+        Project project = channel.getProject();
+        Team team = channel.getTeam();
+
+        // Admins of project or team can delete
+        if (project != null && checkIfUserIsAdminInProject(project.getId(), userId)) return;
+        if (team != null && checkIfUserIsAdminInTeam(team.getId(), userId)) return;
+
+        throw new AccessDeniedException("You do not have permission to delete this message.");
+    }
+
+    // Verify if the user is the owner of a comment
+    public boolean verifyCommentOwner(Comment comment, UUID userId) {
+        return comment.getUser().getId().equals(userId);
+    }
+
+    // Check permissions for deleting a comment
+    public void checkCommentDeleteAccess(Comment comment, UUID userId) {
+        if (verifyCommentOwner(comment, userId)) return; // Owner can delete
+
+        // Check if admin of associated task's project or message's channel's team
+        if (comment.getTask() != null) {
+            Project project = comment.getTask().getProject();
+            if (checkIfUserIsAdminInProject(project.getId(), userId)) return;
+            if (checkIfUserIsAdminInTeam(project.getTeam().getId(), userId)) return;
+        } else if (comment.getMessage() != null) {
+            Channel channel = comment.getMessage().getChannel();
+            Project project = channel.getProject();
+            Team team = channel.getTeam();
+            if (project != null && checkIfUserIsAdminInProject(project.getId(), userId)) return;
+            if (team != null && checkIfUserIsAdminInTeam(team.getId(), userId)) return;
+        }
+
+        throw new AccessDeniedException("You do not have permission to delete this comment.");
+    }
+
+    // Check access to an event
     public void checkEventAccess(Event event, UUID userId) {
-        if (event.getCreatedBy().getId().equals(userId)) return;
+        if (event.getCreatedBy().getId().equals(userId)) return; // Creator can access
+
         if (event.getTask() != null) {
             checkTaskAccessByTaskId(event.getTask().getId(), userId);
         } else if (event.getProject() != null) {
             checkProjectAccess(event.getProject().getTeam().getId(), event.getProject().getId(), userId);
-        } else {
+        } else if (event.getTeam() != null) {
             checkTeamAccess(event.getTeam().getId(), userId);
+        } else {
+            throw new AccessDeniedException("Access denied to event.");
         }
     }
 
+    // Check permissions for creating/updating an event
     public void checkEventCreationAccess(Team team, Project project, Task task, UUID userId) {
         if (task != null) {
-            checkProjectAccess(task.getProject().getTeam().getId(), task.getProject().getId(), userId);
+            checkTaskAccessByTaskId(task.getId(), userId); // User must have access to the task
         } else if (project != null) {
-            checkProjectAccess(project.getTeam().getId(), project.getId(), userId);
+            checkProjectAdminAccess(project.getTeam().getId(), project.getId(), userId); // User must be project admin
         } else if (team != null) {
             if (!checkIfUserIsAdminInTeam(team.getId(), userId)) {
                 throw new AccessDeniedException("Only team admins can create team-level events.");

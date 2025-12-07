@@ -14,6 +14,5 @@ public class TeamRequest {
     @NotBlank(message = "Team name is required")
     private String name;
 
-    @NotBlank(message = "Team description is required")
     private String description;
 }

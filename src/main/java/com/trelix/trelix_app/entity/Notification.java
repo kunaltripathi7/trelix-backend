@@ -1,34 +1,52 @@
 package com.trelix.trelix_app.entity;
 
+import com.trelix.trelix_app.enums.NotificationType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
-@Entity
-@Table(name = "notifications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Entity
+@Table(name = "notifications")
 public class Notification {
-    @Id @GeneratedValue
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @ManyToOne @JoinColumn(name = "notifier_id", nullable = false)
-    private User notifier;
+    @Column(nullable = false)
+    private UUID notifierId; // User who receives the notification
 
-    @ManyToOne @JoinColumn(name = "actor_id")
-    private User actor;
+    @Column(nullable = false)
+    private UUID actorId; // User who triggered the action
 
-    private String type;    // e.g. TASK_ASSIGNED, MESSAGE_MENTION
-    private Boolean isRead;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private NotificationType type;
 
-    @ManyToOne @JoinColumn(name = "message_id")
-    private Message message;
+    @Column(nullable = false)
+    private UUID referenceId; // ID of the associated entity (Task, Message, etc.)
 
-    @ManyToOne @JoinColumn(name = "task_id")
-    private Task task;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, String> metadata; // Additional JSON data
 
+    @Column(nullable = false)
+    private boolean isRead;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 }

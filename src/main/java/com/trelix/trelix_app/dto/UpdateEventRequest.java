@@ -1,19 +1,17 @@
 package com.trelix.trelix_app.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.trelix.trelix_app.validation.EndTimeAfterStartTime;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class UpdateEventRequest {
-    private String title;
-    private String description;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
-}
+@EndTimeAfterStartTime(message = "End time must be after start time")
+public record UpdateEventRequest(
+        @NotBlank @Size(min = 3, max = 200) String title,
+        @Size(max = 2000) String description,
+        @NotNull @FutureOrPresent LocalDateTime startTime,
+        @NotNull LocalDateTime endTime
+) {}

@@ -1,105 +1,21 @@
 package com.trelix.trelix_app.service;
 
-import com.cloudinary.Cloudinary;
-import com.trelix.trelix_app.dto.AttachmentDTO;
-import com.trelix.trelix_app.entity.*;
-import com.trelix.trelix_app.exception.ResourceNotFoundException;
-import com.trelix.trelix_app.repository.AttachmentRepository;
-import com.trelix.trelix_app.repository.MessageRepository;
-import com.trelix.trelix_app.repository.TaskRepository;
-import com.trelix.trelix_app.repository.UserRepository;
-import com.trelix.trelix_app.util.AppMapper;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.stereotype.Service;
+import com.trelix.trelix_app.dto.AttachmentResponse;
+import com.trelix.trelix_app.enums.EntityType;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-import static com.trelix.trelix_app.util.AppMapper.convertToAttachmentDTO;
+public interface AttachmentService {
 
-@Service
-@Transactional
-@RequiredArgsConstructor
-public class AttachmentService {
+    AttachmentResponse uploadAttachment(MultipartFile file, EntityType entityType, UUID entityId, UUID uploaderId);
 
-    private final AttachmentRepository attachmentRepository;
-    private final Cloudinary cloudinary;
-    private final TaskRepository taskRepository;
-    private final UserRepository userRepository;
-    private final MessageRepository messageRepository;
-    private final AuthorizationService authService;
+    List<AttachmentResponse> getAttachmentsByEntity(EntityType entityType, UUID entityId, UUID requesterId);
 
-    public AttachmentDTO uploadAttachment(MultipartFile file, UUID taskId, UUID userId, UUID messageId) throws IOException {
-        if (taskId != null) {
-            authService.checkTaskAccessByTaskId(taskId, userId);
-        } else if (messageId != null) {
-            authService.checkMessageAccessByMessageId(messageId, userId);
-        }
+    AttachmentResponse getAttachmentById(UUID attachmentId, UUID requesterId);
 
-        Task task = null;
-        if (taskId != null) {
-            task = taskRepository.findById(taskId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
-        }
-        Message message = null;
-        if (messageId != null) {
-            message = messageRepository.findById(messageId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Message not found with ID: " + messageId));
-        }
+    String getDownloadUrl(UUID attachmentId, UUID requesterId);
 
-        Map<String, Object> uploadResult = cloudinary.uploader().upload(file.getBytes(), Map.of());
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-
-        Attachment attachment = Attachment.builder()
-                .fileName(file.getOriginalFilename())
-                .fileType(file.getContentType())
-                .fileSize(file.getSize())
-                .url(uploadResult.get("url").toString())
-                .uploadedBy(user)
-                .task(task)
-                .createdAt(java.time.LocalDateTime.now())
-                .message(message)
-                .build();
-
-        return convertToAttachmentDTO(attachmentRepository.save(attachment));
-    }
-
-    public List<AttachmentDTO> getAttachments(UUID taskId, UUID userId) {
-        authService.checkTaskAccessByTaskId(taskId, userId);
-        return attachmentRepository.findByTaskId(taskId).stream()
-                .map(AppMapper::convertToAttachmentDTO)
-                .toList();
-    }
-
-    public void deleteAttachment(UUID attachmentId, UUID userId) {
-        Attachment attachment = attachmentRepository.findById(attachmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Attachment not found with ID: " + attachmentId));
-
-        boolean canDelete = attachment.getUploadedBy().getId().equals(userId);
-
-
-        if (!canDelete) {
-            if (attachment.getTask() != null) {
-                Task task = attachment.getTask();
-                Project project = task.getProject();
-                Team team = project.getTeam();
-
-                if (authService.checkIfUserIsAdminInProject(project.getId(), userId) || authService.checkIfUserIsAdminInTeam(team.getId(), userId)) {
-                    canDelete = true;
-                }
-            }
-        }
-
-        if (!canDelete) {
-            throw new AccessDeniedException("You do not have permission to delete this attachment.");
-        }
-
-        attachmentRepository.delete(attachment);
-    }
+    void deleteAttachment(UUID attachmentId, UUID requesterId);
 }

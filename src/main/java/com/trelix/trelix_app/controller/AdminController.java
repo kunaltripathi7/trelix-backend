@@ -19,16 +19,16 @@ public class AdminController {
 
     private final UserRepository userRepository;
 
-    @PreAuthorize("hasRole('ADMIN')") // it adds ROLE_Automaticaly
+    @PreAuthorize("hasRole('ADMIN')") // it adds ROLE_Automatically
     @PostMapping("/assign-role")
     public ResponseEntity<String> assignRole(@Valid @RequestBody RoleAssignmentRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setRole(request.getNewRole());
+        user.setTeamRole(request.getNewTeamRole());
         userRepository.save(user);
 
-        return ResponseEntity.ok("Role updated to " + request.getNewRole());
+        return ResponseEntity.ok("Role updated to " + request.getNewTeamRole());
     }
 
 }

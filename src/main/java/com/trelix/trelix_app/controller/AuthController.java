@@ -1,101 +1,63 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.AuthenticationRequest;
-import com.trelix.trelix_app.dto.AuthenticationResponse;
+import com.trelix.trelix_app.dto.AuthResponse;
+import com.trelix.trelix_app.dto.LoginRequest;
 import com.trelix.trelix_app.dto.RefreshTokenRequest;
 import com.trelix.trelix_app.dto.RegisterRequest;
-
-import com.trelix.trelix_app.entity.User;
-import com.trelix.trelix_app.enums.Role;
-
-import com.trelix.trelix_app.security.CustomUserDetails;
-import com.trelix.trelix_app.service.UserService;
-import com.trelix.trelix_app.util.JwtUtils;
-import jakarta.servlet.http.HttpServletRequest;
+import com.trelix.trelix_app.dto.RegisterResponse;
+import com.trelix.trelix_app.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Validated
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-
-    private final JwtUtils jwtUtils;
-
-    private final UserService userDetailsService;
-
-    @PostMapping("/login")
-    public ResponseEntity<?> login(
-            @RequestBody AuthenticationRequest request) {
-
-        Authentication authentication;
-        try {
-            authentication = authenticationManager
-                    .authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-        } catch (AuthenticationException exception) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("message", "Bad credentials");
-            map.put("status", false);
-            // ResponseEntity<Object>(Object body, HttpStatus status)
-            return new ResponseEntity<Object>(map, HttpStatus.NOT_FOUND);
-        }
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        UserDetails userDetails = userDetailsService
-                .loadUserByUsername(request.getEmail());
-        User user = ((CustomUserDetails) userDetails).getUser();
-
-        String accessToken = jwtUtils.generateTokenFromUsername(userDetails);
-
-        String refreshToken = userDetailsService.generateAndSaveRefreshToken(user);
-
-        return ResponseEntity.ok(new AuthenticationResponse(accessToken, refreshToken));
-    }
+    private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request) {
-        User user = userDetailsService.registerUser(request.getEmail(), request.getPassword(), request.getUsername(), Role.ROLE_MEMBER);
-        CustomUserDetails userDetails = new CustomUserDetails(user);
-        String accessToken = jwtUtils.generateTokenFromUsername(userDetails);
-        String refreshToken = userDetailsService.generateAndSaveRefreshToken(user);
-        return ResponseEntity.ok(new AuthenticationResponse(accessToken, refreshToken));
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<RegisterResponse> register(
+            @Valid @RequestBody RegisterRequest request) {
+        RegisterResponse response = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
-        String refreshToken = request.getRefreshToken();
-        User user = userDetailsService.findByRefreshToken(refreshToken);
-        String newAccessToken = jwtUtils.generateTokenFromUsername(new CustomUserDetails(user));
-        String newRefreshToken = userDetailsService.generateAndSaveRefreshToken(user);
-        return ResponseEntity.ok(new AuthenticationResponse(newAccessToken, newRefreshToken));
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(
+            @Valid @RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(
+            @Valid @RequestBody RefreshTokenRequest request) {
+        AuthResponse response = authService.refreshToken(request.refreshToken());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        String token = jwtUtils.getJwtFromHeader(request);
-        if (token == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token");
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<Void> logout(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        // Extract token if present, though for stateless JWT, client-side discard is primary.
+        String token = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
         }
-        String email = jwtUtils.getUserNameFromJwtToken(token);
-        User user = userDetailsService.findByEmail(email);
-        user.setRefreshToken(null);
-        userDetailsService.save(user);
-        return ResponseEntity.ok("Logged out successfully");
+        authService.logout(token);
+        return ResponseEntity.noContent().build();
     }
-
-
 }

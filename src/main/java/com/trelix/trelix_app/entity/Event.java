@@ -1,39 +1,51 @@
 package com.trelix.trelix_app.entity;
 
+import com.trelix.trelix_app.enums.EventEntityType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "events")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Entity
+@Table(name = "events")
 public class Event {
-    @Id @GeneratedValue
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    @Column(nullable = false)
     private String title;
+
+    @Column(length = 2000)
     private String description;
+
+    @Column(nullable = false)
     private LocalDateTime startTime;
+
+    @Column(nullable = false)
     private LocalDateTime endTime;
 
-    @ManyToOne @JoinColumn(name = "created_by", nullable = false)
-    private User createdBy;
+    @Column(nullable = false)
+    private UUID createdBy; // User ID of the creator
 
-    @ManyToOne @JoinColumn(name = "team_id")
-    private Team team;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EventEntityType entityType;
 
-    @ManyToOne @JoinColumn(name = "project_id")
-    private Project project;
+    @Column(nullable = false)
+    private UUID entityId; // ID of the associated entity (Team, Project, Task)
 
-    @ManyToOne @JoinColumn(name = "task_id")
-    private Task task;
-
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }
-
-

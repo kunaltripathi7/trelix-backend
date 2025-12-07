@@ -1,90 +1,27 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.ProjectDetailResponse;
-import com.trelix.trelix_app.dto.ProjectRequest;
-import com.trelix.trelix_app.dto.ProjectResponse;
-import com.trelix.trelix_app.entity.Project;
-import com.trelix.trelix_app.entity.Team;
-import com.trelix.trelix_app.enums.ProjectStatus;
-import com.trelix.trelix_app.exception.ResourceNotFoundException;
-import com.trelix.trelix_app.repository.ProjectRepository;
-import com.trelix.trelix_app.repository.TeamRepository;
-import com.trelix.trelix_app.util.AppMapper;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.stereotype.Service;
+import com.trelix.trelix_app.dto.*;
+import com.trelix.trelix_app.enums.ProjectRole;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-@Service
-@Transactional
-@RequiredArgsConstructor
-public class ProjectService {
+public interface ProjectService {
+    ProjectResponse createProject(CreateProjectRequest request, UUID creatorId);
 
-    private final TeamRepository teamRepository;
-    private final ProjectRepository projectRepository;
-    private final AuthorizationService authService;
+    List<ProjectResponse> getProjectsByTeam(UUID teamId, UUID requesterId);
 
-    public ProjectDetailResponse createProject(ProjectRequest request, UUID teamId, UUID userId) {
-        if (!authService.checkIfUserIsAdminInTeam(teamId, userId)) {
-            throw new AccessDeniedException("You do not have permission to create a project in this team.");
-        }
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
+    ProjectDetailResponse getProjectById(UUID projectId, UUID requesterId);
 
-        Project project = Project.builder()
-                .name(request.getName())
-                .description(request.getDescription())
-                .team(team)
-                .status(ProjectStatus.NOT_STARTED)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-        projectRepository.save(project);
-        return AppMapper.convertToProjectDetailResponse(project);
-    }
+    ProjectResponse updateProject(UUID projectId, UpdateProjectRequest request, UUID requesterId);
 
-    public ProjectDetailResponse getProject(UUID projectId, UUID userId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + projectId));
-        authService.checkProjectAccess(project.getTeam().getId(), projectId, userId);
-        return AppMapper.convertToProjectDetailResponse(project);
-    }
+    void deleteProject(UUID projectId, UUID requesterId);
 
-    public List<ProjectResponse> getProjects(UUID teamId, UUID userId) {
-        authService.checkTeamAccess(teamId, userId);
-        List<Project> projects;
-        if (authService.checkIfUserIsAdminInTeam(teamId, userId)) {
-            projects = projectRepository.findByTeamId(teamId);
-        } else {
-            projects = projectRepository.findByTeamIdAndProjectMembersUserId(teamId, userId);
-        }
-        return projects.stream().map(AppMapper::convertToProjectResponse).toList();
-    }
+    List<ProjectMemberResponse> getProjectMembers(UUID projectId, UUID requesterId);
 
-    public ProjectDetailResponse updateProject(UUID projectId, ProjectRequest request, UUID userId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + projectId));
-        authService.checkProjectAdminAccess(project.getTeam().getId(), projectId, userId);
+    ProjectMemberResponse addMember(UUID projectId, AddProjectMemberRequest request, UUID requesterId);
 
-        project.setName(request.getName());
-        project.setDescription(request.getDescription());
-        if (request.getStatus() != null) {
-            project.setStatus(ProjectStatus.valueOf(request.getStatus()));
-        }
-        project.setUpdatedAt(LocalDateTime.now());
+    ProjectMemberResponse updateMemberRole(UUID projectId, UUID userId, ProjectRole newRole, UUID requesterId);
 
-        projectRepository.save(project);
-        return AppMapper.convertToProjectDetailResponse(project);
-    }
-
-    public void deleteProject(UUID projectId, UUID userId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + projectId));
-        authService.checkProjectAdminAccess(project.getTeam().getId(), projectId, userId);
-        projectRepository.deleteById(projectId);
-    }
+    void removeMember(UUID projectId, UUID userId, UUID requesterId);
 }

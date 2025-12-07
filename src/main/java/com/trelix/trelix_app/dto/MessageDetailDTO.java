@@ -19,6 +19,6 @@ public class MessageDetailDTO {
     private UUID senderId;
     private LocalDateTime sentAt;
     private String senderUsername;
-    List<MessageCommentDTO> comments;
+    List<CommentDTO> comments;
     List<AttachmentDTO> attachments;
 }

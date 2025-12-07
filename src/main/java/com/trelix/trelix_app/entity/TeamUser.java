@@ -1,8 +1,11 @@
 package com.trelix.trelix_app.entity;
 
-import com.trelix.trelix_app.enums.Role;
+import com.trelix.trelix_app.enums.TeamRole;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -13,17 +16,37 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class TeamUser {
-    @Id @GeneratedValue
-    private UUID id;
 
-    @ManyToOne @JoinColumn(name = "user_id", nullable = false)
+    @EmbeddedId
+    private TeamUserId id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("userId")
+    @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne @JoinColumn(name = "team_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("teamId")
+    @JoinColumn(name = "team_id")
     private Team team;
 
     @Enumerated(EnumType.STRING)
-    private Role role;
+    @Column(nullable = false)
+    private TeamRole role;
 
-    private LocalDateTime joinedAt;
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Embeddable
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @EqualsAndHashCode
+    public static class TeamUserId implements Serializable {
+        @Column(name = "user_id")
+        private UUID userId;
+        @Column(name = "team_id")
+        private UUID teamId;
+    }
 }

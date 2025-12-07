@@ -1,24 +1,37 @@
 package com.trelix.trelix_app.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.trelix.trelix_app.entity.Project;
+import com.trelix.trelix_app.entity.ProjectMember;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-@Builder
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class ProjectDetailResponse {
-    private UUID id;
-    private String name;
-    private String description;
-    private LocalDateTime createdAt;
-    private String status;
-    private List<ChannelDTO> channels;
-    private List<TaskDTO> tasks;
+public record ProjectDetailResponse(
+        UUID id,
+        UUID teamId,
+        String teamName, // Assuming teamName is fetched separately and passed
+        String name,
+        String description,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt,
+        List<ProjectMemberResponse> members
+) {
+    public static ProjectDetailResponse from(Project project, String teamName, List<ProjectMember> projectMembers) {
+        List<ProjectMemberResponse> memberResponses = projectMembers.stream()
+                .map(ProjectMemberResponse::from)
+                .collect(Collectors.toList());
+
+        return new ProjectDetailResponse(
+                project.getId(),
+                project.getTeamId(),
+                teamName,
+                project.getName(),
+                project.getDescription(),
+                project.getCreatedAt(),
+                project.getUpdatedAt(),
+                memberResponses
+        );
+    }
 }

@@ -1,61 +1,82 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.AttachmentDTO;
-import com.trelix.trelix_app.enums.ErrorCode;
-import com.trelix.trelix_app.exception.InvalidRequestException;
-import com.trelix.trelix_app.security.CustomUserDetails;
+import com.trelix.trelix_app.dto.AttachmentResponse;
+import com.trelix.trelix_app.enums.EntityType;
 import com.trelix.trelix_app.service.AttachmentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/v1/attachments")
 @RequiredArgsConstructor
+@Validated
 public class AttachmentController {
 
     private final AttachmentService attachmentService;
 
-    @PostMapping("/attachments")
-    public ResponseEntity<AttachmentDTO> uploadAttachment(
-            @RequestParam(required = false) UUID taskId,
-            @RequestParam(value = "messageId", required = false) UUID messageId,
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AttachmentResponse> uploadAttachment(
             @RequestParam("file") MultipartFile file,
-            @AuthenticationPrincipal CustomUserDetails userDetails) throws IOException {
+            @RequestParam("entityType") EntityType entityType,
+            @RequestParam("entityId") UUID entityId,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        if (messageId == null && taskId == null) {
-            throw new InvalidRequestException(
-                    "Either taskId or messageId must be provided.",
-                    ErrorCode.INVALID_INPUT
-            );
-        }
-        if (messageId != null && taskId != null) {
-            throw new InvalidRequestException(
-                    "Provide either taskId or messageId, but not both.",
-                    ErrorCode.INVALID_INPUT
-            );
-        }
-
-        AttachmentDTO attachment = attachmentService.uploadAttachment(file, taskId, userDetails.getId(), messageId);
-        return ResponseEntity.ok(attachment);
+        UUID uploaderId = UUID.fromString(userDetails.getUsername()); // Assuming username is the user ID
+        AttachmentResponse response = attachmentService.uploadAttachment(file, entityType, entityId, uploaderId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping("/tasks/{taskId}/attachments")
-    public ResponseEntity<List<AttachmentDTO>> getAttachments(@PathVariable UUID taskId,
-                                                              @AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<AttachmentDTO> attachments = attachmentService.getAttachments(taskId, userDetails.getId());
-        return ResponseEntity.ok(attachments);
+    @GetMapping
+    public ResponseEntity<List<AttachmentResponse>> getAttachments(
+            @RequestParam EntityType entityType,
+            @RequestParam UUID entityId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        List<AttachmentResponse> responses = attachmentService.getAttachmentsByEntity(entityType, entityId, requesterId);
+        return ResponseEntity.ok(responses);
     }
 
-    @DeleteMapping("/attachments/{attachmentId}")
-    public ResponseEntity<Void> deleteAttachment(@PathVariable UUID attachmentId,
-                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
-        attachmentService.deleteAttachment(attachmentId, userDetails.getId());
+    @GetMapping("/{attachmentId}")
+    public ResponseEntity<AttachmentResponse> getAttachmentById(
+            @PathVariable UUID attachmentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        AttachmentResponse response = attachmentService.getAttachmentById(attachmentId, requesterId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{attachmentId}/download")
+    public ResponseEntity<Void> downloadAttachment(
+            @PathVariable UUID attachmentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        String downloadUrl = attachmentService.getDownloadUrl(attachmentId, requesterId);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(downloadUrl))
+                .build();
+    }
+
+    @DeleteMapping("/{attachmentId}")
+    public ResponseEntity<Void> deleteAttachment(
+            @PathVariable UUID attachmentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        attachmentService.deleteAttachment(attachmentId, requesterId);
         return ResponseEntity.noContent().build();
     }
 }

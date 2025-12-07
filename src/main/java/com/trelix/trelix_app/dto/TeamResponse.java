@@ -1,18 +1,24 @@
 package com.trelix.trelix_app.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.trelix.trelix_app.entity.Team;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class TeamResponse {
-    private UUID id;
-    private String name;
-    private String description;
+public record TeamResponse(
+    UUID id,
+    String name,
+    String description,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt
+) {
+    public static TeamResponse from(Team team) { // static factory method to convert to dto
+        return new TeamResponse(
+            team.getId(),
+            team.getName(),
+            team.getDescription(),
+            team.getCreatedAt(),
+            team.getUpdatedAt()
+        );
+    }
 }

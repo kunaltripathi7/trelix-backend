@@ -1,27 +1,50 @@
 package com.trelix.trelix_app.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "task_members")
 @Data
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class TaskMember {
 
-    @Id @GeneratedValue
-    private UUID id;
+    @EmbeddedId
+    private TaskMemberId id;
 
-    @ManyToOne @JoinColumn(name = "task_id", referencedColumnName = "id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("taskId")
+    @JoinColumn(name = "task_id")
     private Task task;
 
-    @ManyToOne @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("userId")
+    @JoinColumn(name = "user_id")
     private User user;
+
+    @Column(nullable = false)
+    private String role;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Embeddable
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @EqualsAndHashCode
+    public static class TaskMemberId implements Serializable {
+        @Column(name = "task_id")
+        private UUID taskId;
+        @Column(name = "user_id")
+        private UUID userId;
+    }
 }
