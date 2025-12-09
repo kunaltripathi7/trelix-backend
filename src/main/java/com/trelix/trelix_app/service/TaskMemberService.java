@@ -1,6 +1,5 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.MemberDTO;
 import com.trelix.trelix_app.entity.Task;
 import com.trelix.trelix_app.entity.TaskMember;
 import com.trelix.trelix_app.entity.User;

@@ -41,8 +41,8 @@ public class AppMapper {
                 .build();
     }
 
-    public static TeamDetailsResponse convertToTeamDetailsResponse(Team team) {
-        return TeamDetailsResponse.builder()
+    public static TeamDetailResponse convertToTeamDetailsResponse(Team team) {
+        return TeamDetailResponse.builder()
                 .id(team.getId())
                 .name(team.getName())
                 .description(team.getDescription())

@@ -5,6 +5,7 @@ import com.trelix.trelix_app.dto.NotificationResponse;
 import com.trelix.trelix_app.dto.PagedNotificationResponse;
 import com.trelix.trelix_app.entity.Notification;
 import com.trelix.trelix_app.entity.User;
+import com.trelix.trelix_app.enums.ErrorCode;
 import com.trelix.trelix_app.enums.NotificationType;
 import com.trelix.trelix_app.exception.ForbiddenException;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
@@ -149,7 +150,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private void verifyOwnership(UUID notificationId, UUID userId) {
         if (!notificationRepository.isOwner(notificationId, userId)) {
-            throw new ForbiddenException("You can only access your own notifications");
+            throw new ForbiddenException("You can only access your own notifications", ErrorCode.FORBIDDEN);
         }
     }
 
@@ -170,7 +171,6 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private String generateMessage(NotificationType type, String actorName, Map<String, String> metadata) {
-        // Ensure metadata is not null to avoid NullPointerExceptions
         Map<String, String> safeMetadata = metadata != null ? metadata : Map.of();
 
         return switch (type) {

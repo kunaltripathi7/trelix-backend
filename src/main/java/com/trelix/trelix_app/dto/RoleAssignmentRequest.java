@@ -1,5 +1,6 @@
 package com.trelix.trelix_app.dto;
 
+import com.trelix.trelix_app.enums.ROLE;
 import com.trelix.trelix_app.enums.TeamRole;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -19,5 +20,5 @@ public class RoleAssignmentRequest {
     private UUID userId;
 
     @NotNull(message = "Role cannot be null")
-    private TeamRole role;
+    private ROLE role;
 }

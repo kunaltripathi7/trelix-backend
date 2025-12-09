@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/attachments")
+@RequestMapping("/v1/attachments")
 @RequiredArgsConstructor
 @Validated
 public class AttachmentController {
@@ -32,7 +32,7 @@ public class AttachmentController {
             @RequestParam("entityId") UUID entityId,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        UUID uploaderId = UUID.fromString(userDetails.getUsername()); // Assuming username is the user ID
+        UUID uploaderId = UUID.fromString(userDetails.getUsername());
         AttachmentResponse response = attachmentService.uploadAttachment(file, entityType, entityId, uploaderId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

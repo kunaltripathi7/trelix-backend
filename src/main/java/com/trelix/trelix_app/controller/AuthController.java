@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/v1/auth")
 @RequiredArgsConstructor
 @Validated
 public class AuthController {
@@ -52,7 +52,6 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> logout(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        // Extract token if present, though for stateless JWT, client-side discard is primary.
         String token = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);

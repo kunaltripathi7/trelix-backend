@@ -13,6 +13,7 @@ import java.util.List;
 
 public interface TeamRepository extends JpaRepository<Team, UUID> {
 
+    //Jpql operates on java entities not db tables
     @Query("SELECT t FROM Team t JOIN t.teamUsers tu WHERE tu.user.id = :userId")
     List<Team> findTeamsByUserId(@Param("userId") UUID userId);
 
@@ -23,4 +24,10 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
     Page<Team> searchByUserAccess(@Param("query") String query,
                                    @Param("userId") UUID userId,
                                    Pageable pageable);
+
+    @Query("SELECT t FROM Team t " +
+           "LEFT JOIN FETCH t.teamUsers tu LEFT JOIN FETCH tu.user " +
+           "LEFT JOIN FETCH t.projects " +
+           "LEFT JOIN FETCH t.channels WHERE t.id = :teamId")
+    Optional<Team> findDetailsById(@Param("teamId") UUID teamId);
 }

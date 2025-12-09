@@ -1,5 +1,6 @@
 package com.trelix.trelix_app.entity;
 
+import com.trelix.trelix_app.enums.ROLE;
 import com.trelix.trelix_app.enums.TeamRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -83,6 +84,9 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private TeamRole teamRole;
+
+    @Enumerated(EnumType.STRING)
+    private ROLE role;
 
     @Column(length = 500)
     private String refreshToken;

@@ -18,6 +18,7 @@ public enum ErrorCode {
     // --- Security & Authorization Errors ---
     UNAUTHORIZED_ACCESS,        // For AccessDeniedException
     AUTHENTICATION_FAILURE,     // For authentication-related issues
+    FORBIDDEN,                  // For actions the user is not permitted to perform
 
     // --- File & Upload Errors ---
     FILE_UPLOAD_MAX_SIZE_EXCEEDED,

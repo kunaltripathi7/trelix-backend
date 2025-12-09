@@ -1,6 +1,8 @@
 package com.trelix.trelix_app.service;
 
+import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.repository.UserRepository;
+import com.trelix.trelix_app.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -15,13 +17,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        com.trelix.trelix_app.entity.User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPassword())
-                .authorities("ROLE_USER") // Can add roles from database later
-                .build();
+        return new CustomUserDetails(user);
     }
 }

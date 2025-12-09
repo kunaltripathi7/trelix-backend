@@ -1,6 +1,5 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.MemberDTO;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.TaskMemberService;
 import lombok.RequiredArgsConstructor;

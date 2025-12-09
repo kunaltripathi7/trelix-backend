@@ -6,6 +6,8 @@ import com.trelix.trelix_app.dto.RegisterRequest;
 import com.trelix.trelix_app.dto.RegisterResponse;
 import com.trelix.trelix_app.dto.UserResponse;
 import com.trelix.trelix_app.entity.User;
+import com.trelix.trelix_app.enums.ErrorCode;
+import com.trelix.trelix_app.enums.ROLE;
 import com.trelix.trelix_app.exception.ConflictException;
 import com.trelix.trelix_app.exception.UnauthorizedException;
 import com.trelix.trelix_app.repository.UserRepository;
@@ -30,13 +32,13 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
-    private final CustomUserDetailsService userDetailsService; // Inject CustomUserDetailsService
+    private final CustomUserDetailsService userDetailsService;
 
     @Override
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new ConflictException("Email already registered: " + request.email());
+            throw new ConflictException("Email already registered: " + request.email(), ErrorCode.DATABASE_CONFLICT);
         }
 
         User user = User.builder()
@@ -44,6 +46,8 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .createdAt(LocalDateTime.now())
+                .role(ROLE.USER)
+                .enabled(true)
                 .updatedAt(LocalDateTime.now())
                 .build();
 
@@ -55,14 +59,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
-        );
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
+            );
+        } catch (Exception e) {
+            throw new UnauthorizedException("Invalid email or password", ErrorCode.AUTHENTICATION_FAILURE);
+        }
 
-        // If authentication is successful, get the UserDetails
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new UnauthorizedException("User not found after authentication"));
+                .orElseThrow(() -> new UnauthorizedException("User not found after authentication", ErrorCode.AUTHENTICATION_FAILURE));
 
         String accessToken = jwtUtil.generateAccessToken(user);
         String refreshToken = jwtUtil.generateRefreshToken(user);
@@ -71,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
                 accessToken,
                 refreshToken,
                 "Bearer",
-                jwtUtil.getAccessTokenExpiration() / 1000 // Convert ms to seconds
+                900 // 15 minutes in seconds
         );
     }
 
@@ -79,34 +87,29 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse refreshToken(String refreshToken) {
         try {
             String userEmail = jwtUtil.extractEmail(refreshToken);
-            UUID userId = jwtUtil.extractUserId(refreshToken); // Extract userId from refresh token
+            UUID userId = jwtUtil.extractUserId(refreshToken);
 
             if (userEmail != null && jwtUtil.isTokenValid(refreshToken, userDetailsService.loadUserByUsername(userEmail))) {
                 User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new UnauthorizedException("User not found for refresh token"));
+                        .orElseThrow(() -> new UnauthorizedException("User not found for refresh token", ErrorCode.AUTHENTICATION_FAILURE));
 
                 String newAccessToken = jwtUtil.generateAccessToken(user);
-                // Optionally, generate a new refresh token as well for refresh token rotation
-                // String newRefreshToken = jwtUtil.generateRefreshToken(user);
 
                 return new AuthResponse(
                         newAccessToken,
-                        refreshToken, // Return the same refresh token or a new one
+                        refreshToken,
                         "Bearer",
-                        jwtUtil.getAccessTokenExpiration() / 1000
+                        900
                 );
             }
-            throw new UnauthorizedException("Invalid or expired refresh token");
+            throw new UnauthorizedException("Invalid or expired refresh token", ErrorCode.AUTHENTICATION_FAILURE);
         } catch (Exception e) {
-            throw new UnauthorizedException("Invalid or expired refresh token: " + e.getMessage());
+            throw new UnauthorizedException("Invalid or expired refresh token: " + e.getMessage(), ErrorCode.AUTHENTICATION_FAILURE);
         }
     }
 
     @Override
     public void logout(String token) {
-        // For stateless JWT, logout typically means the client discards the token.
-        // If a token blacklist is implemented (e.g., using Redis), the token would be added there.
-        // For this implementation, we'll just acknowledge the request.
         System.out.println("User logged out (token discarded by client): " + token);
     }
 }

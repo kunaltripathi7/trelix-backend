@@ -1,8 +1,8 @@
 package com.trelix.trelix_app.controller;
 
 import com.trelix.trelix_app.dto.RoleAssignmentRequest;
-import com.trelix.trelix_app.entity.User;
-import com.trelix.trelix_app.repository.UserRepository;
+import com.trelix.trelix_app.dto.UserResponse;
+import com.trelix.trelix_app.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,22 +13,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/v1/admin")
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final UserRepository userRepository;
+    private final AdminService adminService;
 
-    @PreAuthorize("hasRole('ADMIN')") // it adds ROLE_Automatically
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/assign-role")
-    public ResponseEntity<String> assignRole(@Valid @RequestBody RoleAssignmentRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        user.setTeamRole(request.getNewTeamRole());
-        userRepository.save(user);
-
-        return ResponseEntity.ok("Role updated to " + request.getNewTeamRole());
+    public ResponseEntity<UserResponse> assignRole(@Valid @RequestBody RoleAssignmentRequest request) {
+        UserResponse updatedUser = adminService.assignGlobalRole(request);
+        return ResponseEntity.ok(updatedUser);
     }
-
 }

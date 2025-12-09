@@ -18,21 +18,18 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/notifications")
+@RequestMapping("/v1/notifications")
 @RequiredArgsConstructor
 @Validated
 public class NotificationController {
 
     private final NotificationService notificationService;
 
-    // TEMPORARY - Remove when Kafka implemented
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<NotificationResponse> createNotification(
             @Valid @RequestBody CreateNotificationRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        // For testing purposes, we can allow any authenticated user to create a notification
-        // In a real scenario, this would be handled by internal services or Kafka consumers.
         return ResponseEntity.status(HttpStatus.CREATED).body(notificationService.createNotification(request));
     }
 

@@ -27,7 +27,7 @@ public class TeamServiceImpl implements TeamService {
     private final TeamRepository teamRepository;
     private final TeamUserRepository teamUserRepository;
     private final UserRepository userRepository;
-    private final AuthorizationService authorizationService;
+    private final AdminService adminService;
 
     @Override
     @Transactional
@@ -65,7 +65,8 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional(readOnly = true)
     public TeamDetailResponse getTeamById(UUID teamId, UUID requesterId) {
-        authorizationService.checkTeamAccess(teamId, requesterId);
+        teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
+                .orElseThrow(() -> new AccessDeniedException("You are not a member of this team."));
 
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
@@ -118,7 +119,8 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional(readOnly = true)
     public List<TeamMemberResponse> getTeamMembers(UUID teamId, UUID requesterId) {
-        authorizationService.checkTeamAccess(teamId, requesterId); // Verify requester is a member
+        teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
+                .orElseThrow(() -> new AccessDeniedException("You are not a member of this team."));
 
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
@@ -183,7 +185,7 @@ public class TeamServiceImpl implements TeamService {
         }
 
         if (newRole == TeamRole.OWNER) {
-            throw new InvalidRequestException("Direct promotion to OWNER is not permitted. Use a dedicated ownership transfer mechanism.", ErrorCode.INVALID_INPUT);
+            throw new InvalidRequestException("Direct promotion to OWNER is not permitted. Use the dedicated ownership transfer endpoint.", ErrorCode.INVALID_INPUT);
         }
 
         if (targetTeamUser.getRole() == TeamRole.OWNER && newRole != TeamRole.OWNER) {
@@ -232,25 +234,8 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     @Transactional
-    public TeamDetailResponse transferOwnership(UUID teamId, UUID userId, UUID requesterId) {
-        TeamUser requesterTeamUser = teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
-                .orElseThrow(() -> new AccessDeniedException("You are not a member " +
-                        "of this team."));
-
-        if (requesterTeamUser.getRole() != TeamRole.OWNER) throw new AccessDeniedException("You do not have permission to transfer ownership.");
-
-        TeamUser targetTeamUser = teamUserRepository.findById_TeamIdAndId_UserId(teamId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("The target user is not a member of this team"));
-
-        if (targetTeamUser.getRole() == TeamRole.OWNER) throw new InvalidRequestException("Cannot change the role of owner to owner", ErrorCode.INVALID_INPUT);
-
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
-        requesterTeamUser.setRole(TeamRole.ADMIN);
-        targetTeamUser.setRole(TeamRole.OWNER);
-        teamUserRepository.save(requesterTeamUser);
-        teamUserRepository.save(targetTeamUser);
-        return TeamDetailResponse.from(team, List.of(TeamMemberResponse.from(requesterTeamUser), TeamMemberResponse.from(targetTeamUser)));
+    public TeamDetailResponse transferOwnership(UUID teamId, UUID newOwnerId, UUID requesterId) {
+        // Delegate the entire operation to the AdminService
+        return adminService.transferTeamOwnership(teamId, newOwnerId, requesterId);
     }
-
 }

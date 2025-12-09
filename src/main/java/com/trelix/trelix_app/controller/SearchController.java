@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/search")
+@RequestMapping("/v1/search")
 @RequiredArgsConstructor
 @Validated
 public class SearchController {
@@ -88,7 +88,7 @@ public class SearchController {
     public ResponseEntity<Page<UserSearchResponse>> searchUsers(
             @RequestParam @Length(min = 2, max = 100, message = "Search query must be between 2 and 100 characters") String query,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) { // No userDetails needed as it's public search
+            @RequestParam(defaultValue = "20") int size) {
 
         Page<UserSearchResponse> response = searchService.searchUsers(query, page, size);
         return ResponseEntity.ok(response);

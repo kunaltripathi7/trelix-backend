@@ -7,6 +7,7 @@ import com.trelix.trelix_app.dto.UpdateEventRequest;
 import com.trelix.trelix_app.entity.Event;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.EventEntityType;
+import com.trelix.trelix_app.enums.ErrorCode;
 import com.trelix.trelix_app.exception.BadRequestException;
 import com.trelix.trelix_app.exception.ForbiddenException;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
@@ -36,16 +37,9 @@ public class EventServiceImpl implements EventService {
     private final ProjectService projectService;
     private final TaskService taskService;
 
-    // Assuming existence of auth services for modify permissions
-    // private final TeamAuthService teamAuthService;
-    // private final ProjectAuthService projectAuthService;
-
     @Override
     @Transactional
     public EventResponse createEvent(CreateEventRequest request, UUID creatorId) {
-        // Validation for startTime and endTime is handled by @EndTimeAfterStartTime and @FutureOrPresent annotations on DTO
-
-        // Verify parent entity exists and user has access
         verifyEntityAccess(request.entityType(), request.entityId(), creatorId);
 
         User creator = userRepository.findById(creatorId)
@@ -68,11 +62,10 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     public PagedEventResponse getEvents(EventEntityType entityType, UUID entityId, LocalDate startDate, LocalDate endDate, int page, int size, UUID requesterId) {
-        // Verify requester has access to the parent entity if entityType and entityId are provided
         if (entityType != null && entityId != null) {
             verifyEntityAccess(entityType, entityId, requesterId);
         } else if (entityType != null || entityId != null) {
-            throw new BadRequestException("Both entityType and entityId must be provided if one is present.");
+            throw new BadRequestException("Both entityType and entityId must be provided if one is present.", ErrorCode.INVALID_REQUEST_PARAMETER);
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("startTime").ascending());
@@ -142,30 +135,26 @@ public class EventServiceImpl implements EventService {
     }
 
     private void verifyEntityAccess(EventEntityType entityType, UUID entityId, UUID userId) {
-        switch (entityType) {
-            case TEAM -> teamService.getTeamById(entityId, userId); // Assumed to throw if no access
-            case PROJECT -> projectService.getProjectById(entityId, userId); // Assumed to throw if no access
-            case TASK -> taskService.getTaskById(entityId, userId); // Assumed to throw if no access
-            default -> throw new BadRequestException("Unsupported entity type for events: " + entityType);
+        try {
+            switch (entityType) {
+                case TEAM -> teamService.getTeamById(entityId, userId);
+                case PROJECT -> projectService.getProjectById(entityId, userId);
+                case TASK -> taskService.getTaskById(entityId, userId);
+                default -> throw new BadRequestException("Unsupported entity type for events: " + entityType, ErrorCode.INVALID_INPUT);
+            }
+        } catch (ResourceNotFoundException e) {
+            throw new ForbiddenException("You do not have access to this entity.", ErrorCode.FORBIDDEN);
         }
     }
 
     private void verifyModifyPermission(Event event, UUID userId) {
-        // Check if user is event creator
         if (event.getCreatedBy().equals(userId)) {
             return;
         }
-
-        // Placeholder for admin checks. In a real app, these would be dedicated auth service calls.
-        // For now, if not creator, it's forbidden.
-        // Example: teamAuthService.verifyTeamAdminOrOwner(event.getEntityId(), userId);
-        // Example: projectAuthService.verifyProjectAdmin(event.getEntityId(), userId);
-        throw new ForbiddenException("You do not have permission to modify this event.");
+        throw new ForbiddenException("You do not have permission to modify this event.", ErrorCode.FORBIDDEN);
     }
 
     private EventResponse toEventResponse(Event event, String creatorName) {
-        // In a real application, you might fetch the entity name from the respective service
-        // For now, we'll use a placeholder or assume it's not needed in the response for simplicity
         String entityName = getEntityName(event.getEntityType(), event.getEntityId());
 
         return new EventResponse(
@@ -184,9 +173,6 @@ public class EventServiceImpl implements EventService {
     }
 
     private String getEntityName(EventEntityType entityType, UUID entityId) {
-        // This is a simplified placeholder. In a real application, you'd fetch the actual name
-        // from the respective service (e.g., teamService.getTeamById(entityId, null).getName())
-        // This would require careful handling of authorization for fetching just the name.
-        return entityType.name() + " " + entityId.toString().substring(0, 8); // Example: "TEAM 1234abcd"
+        return entityType.name() + " " + entityId.toString().substring(0, 8);
     }
 }
