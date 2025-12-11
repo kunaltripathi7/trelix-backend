@@ -9,15 +9,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface TeamUserRepository extends JpaRepository<TeamUser, TeamUser.TeamUserId> {
-    long countByIdTeamId(UUID teamId);
 
     Optional<TeamUser> findById_TeamIdAndId_UserId(UUID teamId, UUID userId);
+
+    boolean existsById_TeamIdAndId_UserIdAndRole(UUID teamId, UUID userId,  TeamRole teamRole);
 
     boolean existsById_TeamIdAndId_UserId(UUID teamId, UUID userId);
 
     void deleteById_TeamIdAndId_UserId(UUID teamId, UUID userId);
 
     List<TeamUser> findById_TeamId(UUID teamId);
-
-    long countById_TeamIdAndRole(UUID teamId, TeamRole role);
 }

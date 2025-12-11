@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
 
     private ErrorResponse buildErrorResponse(String message, ErrorCode errorCode, String path) {
         return ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().toString())
                 .path(path)
                 .errorCode(errorCode.name())
                 .message(message)
@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ValidationErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
         ValidationErrorResponse errorResponse = new ValidationErrorResponse();
-        errorResponse.setTimestamp(LocalDateTime.now());
+        errorResponse.setTimestamp(LocalDateTime.now().toString());
         errorResponse.setPath(request.getRequestURI());
         errorResponse.setErrorCode(ErrorCode.VALIDATION_FAILED.name());
         errorResponse.setMessage("Validation failed for one or more fields.");
@@ -100,6 +100,20 @@ public class GlobalExceptionHandler {
         logger.error("Database integrity violation: {}", ex.getMessage());
         ErrorResponse errorResponse = buildErrorResponse("A database conflict occurred. This may be due to a duplicate entry or a foreign key constraint failure.", ErrorCode.DATABASE_CONFLICT, request.getRequestURI());
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflictException(ConflictException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = buildErrorResponse(ex.getMessage(), ex.getErrorCode(), request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+
+    @ExceptionHandler(ServiceException.class)
+    public ResponseEntity<ErrorResponse> handleServiceException(ServiceException ex, HttpServletRequest request) {
+        logger.error("External service failure: {}", ex.getMessage(), ex);
+        ErrorResponse errorResponse = buildErrorResponse(ex.getMessage(), ex.getErrorCode(), request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

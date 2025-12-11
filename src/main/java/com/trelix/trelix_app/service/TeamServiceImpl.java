@@ -6,11 +6,14 @@ import com.trelix.trelix_app.entity.TeamUser;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.ErrorCode;
 import com.trelix.trelix_app.enums.TeamRole;
+import com.trelix.trelix_app.exception.ConflictException;
+import com.trelix.trelix_app.exception.ForbiddenException;
 import com.trelix.trelix_app.exception.InvalidRequestException;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.TeamRepository;
 import com.trelix.trelix_app.repository.TeamUserRepository;
 import com.trelix.trelix_app.repository.UserRepository;
+import com.trelix.trelix_app.util.AppMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -27,7 +30,6 @@ public class TeamServiceImpl implements TeamService {
     private final TeamRepository teamRepository;
     private final TeamUserRepository teamUserRepository;
     private final UserRepository userRepository;
-    private final AdminService adminService;
 
     @Override
     @Transactional
@@ -68,14 +70,14 @@ public class TeamServiceImpl implements TeamService {
         teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
                 .orElseThrow(() -> new AccessDeniedException("You are not a member of this team."));
 
-        Team team = teamRepository.findById(teamId)
+        Team team = teamRepository.findDetailsById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
 
         List<TeamMemberResponse> members = teamUserRepository.findById_TeamId(teamId).stream()
                 .map(TeamMemberResponse::from)
-                .collect(Collectors.toList());
+                .toList();
 
-        return TeamDetailResponse.from(team, members);
+        return TeamDetailResponse.from(team);
     }
 
     @Override
@@ -147,7 +149,7 @@ public class TeamServiceImpl implements TeamService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.userId()));
 
         if (teamUserRepository.existsById_TeamIdAndId_UserId(teamId, request.userId())) {
-            throw new InvalidRequestException("User " + request.userId() + " is already a member of team " + teamId, ErrorCode.INVALID_INPUT);
+            throw new ConflictException("User " + request.userId() + " is already a member of team " + teamId, ErrorCode.DATABASE_CONFLICT);
         }
 
         TeamUser.TeamUserId teamUserId = new TeamUser.TeamUserId(memberUser.getId(), team.getId());
@@ -188,13 +190,6 @@ public class TeamServiceImpl implements TeamService {
             throw new InvalidRequestException("Direct promotion to OWNER is not permitted. Use the dedicated ownership transfer endpoint.", ErrorCode.INVALID_INPUT);
         }
 
-        if (targetTeamUser.getRole() == TeamRole.OWNER && newRole != TeamRole.OWNER) {
-            long ownerCount = teamUserRepository.countById_TeamIdAndRole(teamId, TeamRole.OWNER);
-            if (ownerCount <= 1) {
-                throw new InvalidRequestException("Cannot demote the last OWNER of the team.", ErrorCode.INVALID_INPUT);
-            }
-        }
-
         targetTeamUser.setRole(newRole);
 
         teamUserRepository.save(targetTeamUser);
@@ -222,20 +217,46 @@ public class TeamServiceImpl implements TeamService {
             throw new InvalidRequestException("You cannot remove yourself from the team through this endpoint. Please use a dedicated 'leave team' function.", ErrorCode.INVALID_INPUT);
         }
 
-        if (targetTeamUser.getRole() == TeamRole.OWNER) {
-            long ownerCount = teamUserRepository.countById_TeamIdAndRole(teamId, TeamRole.OWNER);
-            if (ownerCount <= 1) {
-                throw new InvalidRequestException("Cannot remove the last OWNER of the team.", ErrorCode.INVALID_INPUT);
-            }
-        }
+        if (targetTeamUser.getRole() == TeamRole.OWNER) throw new InvalidRequestException("Cannot remove the OWNER of the team.", ErrorCode.INVALID_INPUT);
 
         teamUserRepository.deleteById_TeamIdAndId_UserId(teamId, userId);
     }
 
     @Override
     @Transactional
-    public TeamDetailResponse transferOwnership(UUID teamId, UUID newOwnerId, UUID requesterId) {
-        // Delegate the entire operation to the AdminService
-        return adminService.transferTeamOwnership(teamId, newOwnerId, requesterId);
+    public List<TeamMemberResponse> transferOwnership(UUID teamId, UUID newOwnerId, UUID requesterId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found with ID: " + teamId));
+
+        TeamUser currentOwner = team.getTeamUsers().stream()
+                .filter(tu -> tu.getRole() == TeamRole.OWNER)
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Could not find owner for team: " + teamId));
+
+         if (!currentOwner.getUser().getId().equals(requesterId)) {
+             throw new ForbiddenException("Only the current owner can transfer ownership.", ErrorCode.FORBIDDEN);
+         }
+
+        User newOwnerUser = userRepository.findById(newOwnerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + newOwnerId));
+
+        TeamUser newOwnerTeamUser = team.getTeamUsers().stream()
+                .filter(tu -> tu.getUser().getId().equals(newOwnerId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("New owner is not a member of the team."));
+
+        currentOwner.setRole(TeamRole.ADMIN);
+        newOwnerTeamUser.setRole(TeamRole.OWNER);
+
+        TeamMemberResponse savedOldOwner = TeamMemberResponse.from(teamUserRepository.save(currentOwner));
+        TeamMemberResponse savedNewOwner = TeamMemberResponse.from(teamUserRepository.save(newOwnerTeamUser));
+
+        Team updatedTeam = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found after ownership transfer."));
+
+
+        return  List.of(savedOldOwner, savedNewOwner);
     }
 }
+
+// why a different endpoint for transferring ownership -> ? Safety, Clarity, Different operation, future maintenance

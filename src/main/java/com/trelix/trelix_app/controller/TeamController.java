@@ -108,12 +108,12 @@ public class TeamController {
     }
 
     @PostMapping("/{teamId}/transfer-ownership")
-    public ResponseEntity<TeamDetailResponse> transferOwnership(
+    public ResponseEntity<List<TeamMemberResponse>> transferOwnership(
             @PathVariable UUID teamId,
             @Valid @RequestBody TransferOwnershipRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser
     ) {
-        TeamDetailResponse updatedTeamDetails = teamService.transferOwnership(teamId, request.newOwnerId(), currentUser.getId());
-        return ResponseEntity.ok(updatedTeamDetails);
+        List<TeamMemberResponse> updatedTeamMembers = teamService.transferOwnership(teamId, request.newOwnerId(), currentUser.getId());
+        return ResponseEntity.ok(updatedTeamMembers);
     }
 }

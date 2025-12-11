@@ -7,8 +7,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.UUID;
+import java.util.Set;
 
 @Entity
 @Table(name = "teams")
@@ -36,14 +37,14 @@ public class Team {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TeamUser> teamUsers = new ArrayList<>();
+    private Set<TeamUser> teamUsers = new HashSet<>();
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Project> projects = new ArrayList<>();
+    private Set<Project> projects = new HashSet<>();
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Task> tasks = new ArrayList<>();
+    private Set<Task> tasks = new HashSet<>();
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Channel> channels = new ArrayList<>();
+    private Set<Channel> channels = new HashSet<>();
 }

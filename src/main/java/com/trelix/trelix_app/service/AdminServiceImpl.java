@@ -24,44 +24,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
 
-    private final TeamRepository teamRepository;
+
     private final UserRepository userRepository;
-    private final TeamUserRepository teamUserRepository;
 
-    @Override
-    @Transactional
-    public TeamDetailResponse transferTeamOwnership(UUID teamId, UUID newOwnerId, UUID requesterId) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found with ID: " + teamId));
-
-        TeamUser currentOwner = team.getTeamUsers().stream()
-                .filter(tu -> tu.getRole() == TeamRole.OWNER)
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Could not find owner for team: " + teamId));
-
-        if (!currentOwner.getUser().getId().equals(requesterId)) {
-            throw new ForbiddenException("Only the current owner can transfer ownership.", ErrorCode.FORBIDDEN);
-        }
-
-        User newOwnerUser = userRepository.findById(newOwnerId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + newOwnerId));
-
-        TeamUser newOwnerTeamUser = team.getTeamUsers().stream()
-                .filter(tu -> tu.getUser().getId().equals(newOwnerId))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("New owner is not a member of the team."));
-
-        currentOwner.setRole(TeamRole.ADMIN);
-        newOwnerTeamUser.setRole(TeamRole.OWNER);
-
-        teamUserRepository.save(currentOwner);
-        teamUserRepository.save(newOwnerTeamUser);
-
-        Team updatedTeam = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found after ownership transfer."));
-
-        return AppMapper.convertToTeamDetailsResponse(updatedTeam);
-    }
 
     @Override
     @Transactional

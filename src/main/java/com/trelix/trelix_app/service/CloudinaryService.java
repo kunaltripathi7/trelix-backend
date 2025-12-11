@@ -1,6 +1,7 @@
 package com.trelix.trelix_app.service;
 
 import com.cloudinary.Cloudinary;
+import com.trelix.trelix_app.enums.ErrorCode;
 import com.trelix.trelix_app.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,10 +18,6 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
 
-    /**
-     * Upload file to Cloudinary
-     * @return public URL of uploaded file
-     */
     public String uploadFile(MultipartFile file, String folder) {
         try {
             Map<String, Object> uploadParams = Map.of(
@@ -31,28 +28,19 @@ public class CloudinaryService {
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadParams);
             return (String) uploadResult.get("secure_url");
         } catch (IOException e) {
-            throw new ServiceException("Failed to upload file to Cloudinary", e);
+            throw new ServiceException("Failed to upload file to Cloudinary", ErrorCode.EXTERNAL_SYSTEM_FAILURE, e);
         }
     }
 
-    /**
-     * Delete file from Cloudinary
-     * @param publicId extracted from URL
-     */
     public void deleteFile(String publicId) {
         try {
             cloudinary.uploader().destroy(publicId, Map.of());
         } catch (IOException e) {
-            throw new ServiceException("Failed to delete file from Cloudinary", e);
+            throw new ServiceException("Failed to delete file from Cloudinary", ErrorCode.EXTERNAL_SYSTEM_FAILURE, e);
         }
     }
 
-    /**
-     * Extract public ID from Cloudinary URL
-     */
     public String extractPublicId(String url) {
-        // Example: https://res.cloudinary.com/<cloud>/image/upload/v123456/folder/filename.jpg
-        // Return: folder/filename
         Pattern pattern = Pattern.compile(".*/upload/(?:v\\d+/)?([^\\.]+).*");
         Matcher matcher = pattern.matcher(url);
         if (matcher.matches()) {

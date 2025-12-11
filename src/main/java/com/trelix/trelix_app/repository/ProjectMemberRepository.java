@@ -20,6 +20,9 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Pr
 
     boolean existsByIdProjectIdAndIdUserId(UUID projectId, UUID userId);
 
+
+    boolean existsByIdProjectIdAndIdUserIdAndRole(UUID projectId, UUID userId, ProjectRole role);
+
     long countByIdProjectIdAndRole(UUID projectId, ProjectRole role);
 
     @Query("SELECT pm.role FROM ProjectMember pm WHERE pm.id.projectId = :projectId AND pm.id.userId = :userId")

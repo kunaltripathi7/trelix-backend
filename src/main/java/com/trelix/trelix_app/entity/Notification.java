@@ -27,21 +27,21 @@ public class Notification {
     private UUID id;
 
     @Column(nullable = false)
-    private UUID notifierId; // User who receives the notification
+    private UUID notifierId;
 
     @Column(nullable = false)
-    private UUID actorId; // User who triggered the action
+    private UUID actorId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private NotificationType type;
 
     @Column(nullable = false)
-    private UUID referenceId; // ID of the associated entity (Task, Message, etc.)
+    private UUID referenceId;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private Map<String, String> metadata; // Additional JSON data
+    private Map<String, String> metadata;
 
     @Column(nullable = false)
     private boolean isRead;

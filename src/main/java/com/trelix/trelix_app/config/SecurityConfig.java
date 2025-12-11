@@ -43,7 +43,7 @@ public class SecurityConfig {
                 .authenticationEntryPoint(jwtAuthEntryPoint) // Tell Spring to use our custom entry point
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/v1/auth/**", "/error").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
@@ -65,7 +65,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(10); // Strength 10
+        return new BCryptPasswordEncoder(10);
     }
 
     @Bean

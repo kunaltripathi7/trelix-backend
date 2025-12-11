@@ -26,6 +26,9 @@ public class Project {
     @JoinColumn(name = "team_id", nullable = false)
     private Team team;
 
+    @Column(name = "team_id", insertable = false, updatable = false)
+    private UUID teamId;
+
     @Column(nullable = false)
     private String name;
 

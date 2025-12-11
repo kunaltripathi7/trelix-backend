@@ -7,8 +7,5 @@ import com.trelix.trelix_app.dto.UserResponse;
 import java.util.UUID;
 
 public interface AdminService {
-
-    TeamDetailResponse transferTeamOwnership(UUID teamId, UUID newOwnerId, UUID requesterId);
-
     UserResponse assignGlobalRole(RoleAssignmentRequest request);
 }

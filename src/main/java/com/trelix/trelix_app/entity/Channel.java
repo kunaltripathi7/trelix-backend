@@ -25,9 +25,15 @@ public class Channel {
     @JoinColumn(name = "team_id", nullable = false)
     private Team team;
 
+    @Column(name = "team_id", insertable = false, updatable = false)
+    private UUID teamId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private Project project;
+
+    @Column(name = "project_id", insertable = false, updatable = false)
+    private UUID projectId;
 
     @Column(nullable = false)
     private String name;

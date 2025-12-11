@@ -17,7 +17,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
-@RestController
+//@RestController
 @RequestMapping("/v1/attachments")
 @RequiredArgsConstructor
 @Validated

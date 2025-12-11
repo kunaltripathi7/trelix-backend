@@ -26,5 +26,6 @@ public interface TeamService {
 
     void removeMember(UUID teamId, UUID userId, UUID requesterId);
 
-    TeamDetailResponse transferOwnership(UUID teamId, UUID userId, UUID requesterId);
+    List<TeamMemberResponse> transferOwnership(UUID teamId, UUID newOwnerId, UUID requesterId);
+
 }

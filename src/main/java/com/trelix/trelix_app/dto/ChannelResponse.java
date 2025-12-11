@@ -9,7 +9,7 @@ public record ChannelResponse(
         UUID teamId,
         UUID projectId,
         String name,
-        String type, // Derived: "TEAM", "PROJECT", "AD_Hoc"
+        String type,
         LocalDateTime createdAt
 ) {
     public static ChannelResponse from(Channel channel) {

@@ -65,10 +65,10 @@ public class User {
     @OneToMany(mappedBy = "uploadedBy")
     private List<Attachment> uploadedAttachments = new ArrayList<>();
 
-    @OneToMany(mappedBy = "notifier")
+    @OneToMany(mappedBy = "notifierId")
     private List<Notification> notifications = new ArrayList<>();
 
-    @OneToMany(mappedBy = "actor")
+    @OneToMany(mappedBy = "actorId")
     private List<Notification> actedOnNotifications = new ArrayList<>();
 
     @OneToMany(mappedBy = "createdBy")

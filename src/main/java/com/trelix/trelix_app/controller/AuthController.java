@@ -8,6 +8,7 @@ import com.trelix.trelix_app.dto.RegisterResponse;
 import com.trelix.trelix_app.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -49,14 +50,14 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> logout(
+    public ResponseEntity<Map<String, String>> logout(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         String token = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
         }
         authService.logout(token);
-        return ResponseEntity.noContent().build();
+        Map<String, String> response = Map.of("message", "Logged out successfully");
+        return ResponseEntity.ok(response);
     }
 }

@@ -1,5 +1,6 @@
 package com.trelix.trelix_app.entity;
 
+import com.trelix.trelix_app.enums.ProjectRole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -29,8 +30,9 @@ public class ProjectMember {
     @JoinColumn(name = "project_id")
     private Project project;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role;
+    private ProjectRole role;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

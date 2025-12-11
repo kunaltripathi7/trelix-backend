@@ -28,4 +28,7 @@ public enum ErrorCode {
     INVALID_INPUT,              // Generic business rule violation
     MISSING_TASK_OR_MESSAGE_ID,  // Specific example from AttachmentController
     MUTUALLY_EXCLUSIVE_PARAMETERS,  // Specific example from AttachmentController
+
+    // --- For External Service Failure
+    EXTERNAL_SYSTEM_FAILURE   // such as cloudinary
 }
