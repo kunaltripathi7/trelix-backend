@@ -26,7 +26,7 @@ public class TeamUser {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("teamId")
+    @MapsId("teamId") // its a foreign key relation to the team enitity
     @JoinColumn(name = "team_id")
     private Team team;
 

@@ -1,10 +1,12 @@
 package com.trelix.trelix_app.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.trelix.trelix_app.entity.Team;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record TeamResponse(
     UUID id,
     String name,

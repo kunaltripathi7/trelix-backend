@@ -20,7 +20,6 @@ public record TeamDetailResponse (
         List<TeamMemberResponse> memberResponses = team.getTeamUsers().stream()
                 .map(TeamMemberResponse::from)
                 .toList();
-
         List<ProjectResponse> projectResponses = team.getProjects().stream()
                 .map(ProjectResponse::from)
                 .toList();

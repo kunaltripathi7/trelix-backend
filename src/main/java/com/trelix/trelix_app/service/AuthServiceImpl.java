@@ -79,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
                 accessToken,
                 refreshToken,
                 "Bearer",
-                900 // 15 minutes in seconds
+                jwtUtil.getAccessTokenExpiration()
         );
     }
 
@@ -99,7 +99,7 @@ public class AuthServiceImpl implements AuthService {
                         newAccessToken,
                         refreshToken,
                         "Bearer",
-                        900
+                        jwtUtil.getAccessTokenExpiration()
                 );
             }
             throw new UnauthorizedException("Invalid or expired refresh token", ErrorCode.AUTHENTICATION_FAILURE);

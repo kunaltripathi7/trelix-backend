@@ -14,6 +14,7 @@ import com.trelix.trelix_app.repository.TeamRepository;
 import com.trelix.trelix_app.repository.TeamUserRepository;
 import com.trelix.trelix_app.repository.UserRepository;
 import com.trelix.trelix_app.util.AppMapper;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class TeamServiceImpl implements TeamService {
     private final TeamRepository teamRepository;
     private final TeamUserRepository teamUserRepository;
     private final UserRepository userRepository;
+    private final EntityManager em;
 
     @Override
     @Transactional
@@ -41,7 +43,9 @@ public class TeamServiceImpl implements TeamService {
         team.setName(request.name());
         team.setDescription(request.description());
 
-        Team savedTeam = teamRepository.save(team);
+        Team savedTeam = teamRepository.save(team); // created and updated timestamp -> hibernate injects those now() in the sql but then the java objects and db is out of sync. flush and refetch. just send null and let frontend handle it
+//        teamRepository.flush();
+//        em.refresh(savedTeam);
 
         TeamUser.TeamUserId teamUserId = new TeamUser.TeamUserId(creator.getId(), savedTeam.getId());
         TeamUser teamUser = TeamUser.builder()
@@ -52,7 +56,6 @@ public class TeamServiceImpl implements TeamService {
                 .build();
 
         teamUserRepository.save(teamUser);
-
         return TeamResponse.from(savedTeam);
     }
 
@@ -72,11 +75,6 @@ public class TeamServiceImpl implements TeamService {
 
         Team team = teamRepository.findDetailsById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
-
-        List<TeamMemberResponse> members = teamUserRepository.findById_TeamId(teamId).stream()
-                .map(TeamMemberResponse::from)
-                .toList();
-
         return TeamDetailResponse.from(team);
     }
 

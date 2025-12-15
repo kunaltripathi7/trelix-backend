@@ -6,14 +6,12 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.UUID;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @Table(name = "teams")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -47,4 +45,20 @@ public class Team {
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Channel> channels = new HashSet<>();
+
+    // Removed @Data because it generates equals()/hashCode() using ALL fields,
+    // including the 'team' reference. This causes circular reference issues when
+    // Hibernate adds TeamUser to Team's Set<TeamUser>, breaking the collection.
+    // Manual equals()/hashCode() using only 'id' prevents this.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof TeamUser that)) return false;
+        return Objects.equals(id, that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }
