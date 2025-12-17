@@ -31,13 +31,20 @@ public class TeamServiceImpl implements TeamService {
     private final TeamRepository teamRepository;
     private final TeamUserRepository teamUserRepository;
     private final UserRepository userRepository;
+    private final AuthorizationService authorizationService;
     private final EntityManager em;
+    private final UserService userService;
+
+    @Override
+    public Team getTeamById(UUID id) {
+        return teamRepository.findById(id).
+                orElseThrow(() -> new ResourceNotFoundException("Team not founc with the given Id " + id));
+    }
 
     @Override
     @Transactional
     public TeamResponse createTeam(CreateTeamRequest request, UUID creatorId) {
-        User creator = userRepository.findById(creatorId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + creatorId));
+        User creator = userService.findById(creatorId);
 
         Team team = new Team();
         team.setName(request.name());
@@ -70,9 +77,7 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional(readOnly = true)
     public TeamDetailResponse getTeamById(UUID teamId, UUID requesterId) {
-        teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
-                .orElseThrow(() -> new AccessDeniedException("You are not a member of this team."));
-
+        authorizationService.verifyTeamMembership(teamId, requesterId);
         Team team = teamRepository.findDetailsById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
         return TeamDetailResponse.from(team);
@@ -81,13 +86,7 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional
     public TeamResponse updateTeam(UUID teamId, UpdateTeamRequest request, UUID requesterId) {
-        TeamUser teamUser = teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
-                .orElseThrow(() -> new AccessDeniedException("You are not a member of this team."));
-
-        if (!teamUser.getRole().canManageTeam()) {
-            throw new AccessDeniedException("You do not have permission to update this team.");
-        }
-
+        authorizationService.verifyTeamAdmin(teamId, requesterId);
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
 
@@ -101,14 +100,7 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional
     public void deleteTeam(UUID teamId, UUID requesterId) {
-        TeamUser teamUser = teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
-                .orElseThrow(() -> new AccessDeniedException("You are not a member of this team."));
-
-        if (!teamUser.getRole().canDeleteTeam()) {
-            throw new AccessDeniedException("You do not have permission to delete this team.");
-        }
-
-
+        authorizationService.verifyTeamOwner(teamId, requesterId);
         if (!teamRepository.existsById(teamId)) {
             throw new ResourceNotFoundException("Team not found with id: " + teamId);
         }
@@ -119,9 +111,7 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional(readOnly = true)
     public List<TeamMemberResponse> getTeamMembers(UUID teamId, UUID requesterId) {
-        teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
-                .orElseThrow(() -> new AccessDeniedException("You are not a member of this team."));
-
+        authorizationService.verifyTeamMembership(teamId, requesterId);
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
 
@@ -133,18 +123,11 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional
     public TeamMemberResponse addMember(UUID teamId, AddTeamMemberRequest request, UUID requesterId) {
-        TeamUser requesterTeamUser = teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
-                .orElseThrow(() -> new AccessDeniedException("You are not a member of this team."));
-
-        if (!requesterTeamUser.getRole().canManageTeam()) {
-            throw new AccessDeniedException("You do not have permission to add members to this team.");
-        }
-
+        authorizationService.verifyTeamAdmin(teamId, requesterId);
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
 
-        User memberUser = userRepository.findById(request.userId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.userId()));
+        User memberUser = userService.findById(request.userId());
 
         if (teamUserRepository.existsById_TeamIdAndId_UserId(teamId, request.userId())) {
             throw new ConflictException("User " + request.userId() + " is already a member of team " + teamId, ErrorCode.DATABASE_CONFLICT);
@@ -166,14 +149,7 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional
     public TeamMemberResponse updateMemberRole(UUID teamId, UUID userId, TeamRole newRole, UUID requesterId) {
-
-        TeamUser requesterTeamUser = teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
-                .orElseThrow(() -> new AccessDeniedException("You are not a member of this team."));
-
-        if (!requesterTeamUser.getRole().canDeleteTeam()) {
-            throw new AccessDeniedException("You do not have permission to update member roles in this team.");
-        }
-
+        authorizationService.verifyTeamOwner(teamId, requesterId);
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
 
@@ -198,13 +174,7 @@ public class TeamServiceImpl implements TeamService {
     @Override
     @Transactional
     public void removeMember(UUID teamId, UUID userId, UUID requesterId) {
-        TeamUser requesterTeamUser = teamUserRepository.findById_TeamIdAndId_UserId(teamId, requesterId)
-                .orElseThrow(() -> new AccessDeniedException("You are not a member of this team."));
-
-        if (!requesterTeamUser.getRole().canManageTeam()) {
-            throw new AccessDeniedException("You do not have permission to remove members from this team.");
-        }
-
+        authorizationService.verifyTeamAdmin(teamId, requesterId);
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
 
@@ -235,8 +205,7 @@ public class TeamServiceImpl implements TeamService {
              throw new ForbiddenException("Only the current owner can transfer ownership.", ErrorCode.FORBIDDEN);
          }
 
-        User newOwnerUser = userRepository.findById(newOwnerId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + newOwnerId));
+        User newOwnerUser = userService.findById(newOwnerId);
 
         TeamUser newOwnerTeamUser = team.getTeamUsers().stream()
                 .filter(tu -> tu.getUser().getId().equals(newOwnerId))

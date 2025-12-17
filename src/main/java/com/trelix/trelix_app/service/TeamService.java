@@ -1,12 +1,15 @@
 package com.trelix.trelix_app.service;
 
 import com.trelix.trelix_app.dto.*;
+import com.trelix.trelix_app.entity.Team;
 import com.trelix.trelix_app.enums.TeamRole;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface TeamService {
+
+    Team getTeamById(UUID id);
 
     TeamResponse createTeam(CreateTeamRequest request, UUID creatorId);
 
