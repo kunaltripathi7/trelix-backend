@@ -1,10 +1,12 @@
 package com.trelix.trelix_app.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.trelix.trelix_app.entity.ProjectMember;
 import com.trelix.trelix_app.enums.ProjectRole;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ProjectMemberResponse(
         UUID userId,
         String userName,

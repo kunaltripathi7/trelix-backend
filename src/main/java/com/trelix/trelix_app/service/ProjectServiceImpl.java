@@ -96,7 +96,6 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + projectId));
 
-        // Only project admins can update the project.
         authorizationService.verifyProjectAdmin(projectId, requesterId);
 
         project.setName(request.name());
@@ -113,7 +112,6 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + projectId));
 
-        // Only project admins can delete the project.
         authorizationService.verifyProjectAdmin(projectId, requesterId);
 
         projectRepository.delete(project);
@@ -125,7 +123,6 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + projectId));
 
-        // Any member of the parent team can see the list of project members.
         authorizationService.verifyTeamMembership(project.getTeamId(), requesterId);
 
         List<ProjectMember> projectMembers = projectMemberRepository.findByIdProjectId(projectId);
@@ -141,10 +138,8 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + projectId));
 
-        // Only a project admin can add new members.
         authorizationService.verifyProjectAdmin(projectId, requesterId);
 
-        // The user being added must already be a member of the parent team.
         authorizationService.verifyTeamMembership(project.getTeamId(), request.userId());
 
         if (projectMemberRepository.existsByIdProjectIdAndIdUserId(projectId, request.userId())) {
@@ -171,13 +166,11 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + projectId));
 
-        // Only a project admin can update member roles.
         authorizationService.verifyProjectAdmin(projectId, requesterId);
 
         ProjectMember projectMember = projectMemberRepository.findByIdProjectIdAndIdUserId(projectId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User " + userId + " is not a member of project " + projectId));
 
-        // Prevent the last admin from demoting themselves.
         if (projectMember.getRole() == ProjectRole.ADMIN && newRole == ProjectRole.MEMBER && userId.equals(requesterId)) {
             long adminCount = projectMemberRepository.countByIdProjectIdAndRole(projectId, ProjectRole.ADMIN);
             if (adminCount == 1) {
@@ -198,13 +191,12 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + projectId));
 
-        // Only a project admin can remove members.
         authorizationService.verifyProjectAdmin(projectId, requesterId);
 
         ProjectMember projectMember = projectMemberRepository.findByIdProjectIdAndIdUserId(projectId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User " + userId + " is not a member of project " + projectId));
 
-        // Prevent the last admin from being removed.
+
         if (projectMember.getRole() == ProjectRole.ADMIN) {
             long adminCount = projectMemberRepository.countByIdProjectIdAndRole(projectId, ProjectRole.ADMIN);
             if (adminCount == 1) {

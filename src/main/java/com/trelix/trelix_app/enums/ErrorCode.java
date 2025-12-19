@@ -30,5 +30,8 @@ public enum ErrorCode {
     MUTUALLY_EXCLUSIVE_PARAMETERS,  // Specific example from AttachmentController
 
     // --- For External Service Failure
-    EXTERNAL_SYSTEM_FAILURE   // such as cloudinary
+    EXTERNAL_SYSTEM_FAILURE,   // such as cloudinary
+
+    // --- Data Errors
+    Data_MISMATCH
 }

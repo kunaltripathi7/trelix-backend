@@ -2,15 +2,15 @@ package com.trelix.trelix_app.dto;
 
 import com.trelix.trelix_app.enums.TaskPriority;
 import com.trelix.trelix_app.enums.TaskStatus;
-import jakarta.validation.constraints.Future;
+import com.trelix.trelix_app.validation.EitherTeamOrProject;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@EitherTeamOrProject
 public record CreateTaskRequest(
-        @NotNull(message = "Team ID cannot be null")
         UUID teamId,
 
         UUID projectId,
@@ -26,6 +26,6 @@ public record CreateTaskRequest(
 
         TaskPriority priority,
 
-        @Future(message = "Due date must be a future date")
+        @FutureOrPresent(message = "Due date must be today or a future date")
         LocalDate dueDate
 ) {}

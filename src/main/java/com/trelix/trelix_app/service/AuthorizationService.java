@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -17,8 +19,8 @@ public class AuthorizationService {
 
     private final TeamUserRepository teamUserRepository;
     private final ProjectMemberRepository projectMemberRepository;
-//    private final TaskMemberRepository taskMemberRepository;
-//    private final TaskRepository taskRepository;
+    private final TaskMemberRepository taskMemberRepository;
+    private final TaskRepository taskRepository;
 //    private final MessageRepository messageRepository;
 //    private final ChannelRepository channelRepository;
 
@@ -53,6 +55,27 @@ public class AuthorizationService {
         }
     }
 
+    public void verifyTaskUpdateAcess(UUID taskId, UUID userId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
+        if (taskMemberRepository.existsByIdTaskIdAndIdUserId(task.getId(), userId)) return;
+        if (task.getProjectId() != null) {
+            Optional<ProjectMember> projectMember = projectMemberRepository.findByIdProjectIdAndIdUserId(task.getProjectId(), userId);
+            boolean isProjectAdmin = projectMember.map(pm -> pm.getRole().canManageProject()).orElse(false);
+            if (isProjectAdmin) return;
+        }
+        verifyTeamAdmin(task.getTeamId(), userId);
+    }
+
+    public TaskMember verifyTaskMembership(UUID taskId, UUID userId) {
+            return taskMemberRepository.findByIdTaskIdAndIdUserId(taskId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("You are not a member of this Task with ID: " + taskId));
+    }
+
+    public void verifyTaskAdmin(UUID taskId, UUID userId) {
+        TaskMember taskMember = verifyTaskMembership(taskId, userId);
+        if (!taskMember.getRole().canEditTask()) throw  new AccessDeniedException("You do not have permission to edit this Task.");
+    }
 //    public void checkProjectAccess(UUID teamId, UUID projectId, UUID userId) {
 //        if (!checkIfUserIsAdminInTeam(teamId, userId) && !checkIfUserIsMemberInProject(projectId, userId) && !checkIfUserIsAdminInProject(projectId, userId)) {
 //            throw new AccessDeniedException("User does not have access to this project.");

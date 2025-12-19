@@ -1,5 +1,6 @@
 package com.trelix.trelix_app.entity;
 
+import com.trelix.trelix_app.enums.TaskRole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -30,7 +31,8 @@ public class TaskMember {
     private User user;
 
     @Column(nullable = false)
-    private String role;
+    @Enumerated(EnumType.STRING)
+    private TaskRole role;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
