@@ -28,13 +28,13 @@ public record TaskDetailResponse(
         List<TaskMemberResponse> assignees,
         List<TaskMemberResponse> reviewers
 ) {
-    public static TaskDetailResponse from(Task task, String teamName, String projectName, List<TaskMember> taskMembers) {
-        List<TaskMemberResponse> assignees = taskMembers.stream()
+    public static TaskDetailResponse from(Task task) {
+        List<TaskMemberResponse> assignees = task.getMembers().stream()
                 .filter(tm -> tm.getRole() == TaskRole.ASSIGNEE)
                 .map(TaskMemberResponse::from)
                 .collect(Collectors.toList());
 
-        List<TaskMemberResponse> reviewers = taskMembers.stream()
+        List<TaskMemberResponse> reviewers = task.getMembers().stream()
                 .filter(tm -> tm.getRole() == TaskRole.REVIEWER)
                 .map(TaskMemberResponse::from)
                 .collect(Collectors.toList());
@@ -42,9 +42,9 @@ public record TaskDetailResponse(
         return new TaskDetailResponse(
                 task.getId(),
                 task.getTeam().getId(),
-                teamName,
-                task.getProject().getId(),
-                projectName,
+                task.getTeam().getName(),
+                task.getProject() != null ? task.getProject().getId() : null,
+                task.getProject() != null ? task.getProject().getName() : null,
                 task.getTitle(),
                 task.getDescription(),
                 task.getStatus(),

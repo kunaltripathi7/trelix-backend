@@ -4,6 +4,7 @@ import com.trelix.trelix_app.enums.TaskPriority;
 import com.trelix.trelix_app.enums.TaskStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -11,11 +12,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
 @Table(name = "tasks")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -63,9 +66,23 @@ public class Task {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @BatchSize(size = 20)
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskMember> members = new ArrayList<>();
 
+    @BatchSize(size = 20)
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskStatusChange> statusChanges = new ArrayList<>();
+
+    @Override // 0/w with @Data forces hibernate ro fetch members, status changes just to generate hashcode.
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Task task)) return false;
+        return Objects.equals(id, task.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }

@@ -2,6 +2,7 @@ package com.trelix.trelix_app.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -34,15 +35,19 @@ public class Team {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @BatchSize(size = 20) // wins on memory
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<TeamUser> teamUsers = new HashSet<>();
 
+    @BatchSize(size = 20)
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Project> projects = new HashSet<>();
 
+    @BatchSize(size = 20)
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Task> tasks = new HashSet<>();
 
+    @BatchSize(size = 20)
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Channel> channels = new HashSet<>();
 
@@ -53,7 +58,7 @@ public class Team {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof TeamUser that)) return false;
+        if (!(o instanceof Team that)) return false;
         return Objects.equals(id, that.getId());
     }
 

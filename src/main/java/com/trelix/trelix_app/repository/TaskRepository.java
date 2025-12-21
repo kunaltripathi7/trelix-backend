@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -43,6 +44,12 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
                                 @Param("query") String query,
                                 Pageable pageable);
 
-
+    @Query("SELECT t FROM Task t " +
+           "LEFT JOIN FETCH t.team " +
+           "LEFT JOIN FETCH t.project " +
+           "LEFT JOIN FETCH t.members tm " +
+           "LEFT JOIN FETCH tm.user " +
+           "WHERE t.id = :taskId")
+    Optional<Task> findTaskDetailById(@Param("taskId") UUID taskId);
 
 }

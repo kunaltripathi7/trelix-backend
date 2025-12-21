@@ -2,6 +2,7 @@ package com.trelix.trelix_app.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -42,12 +43,15 @@ public class Project {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @BatchSize(size = 20)
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProjectMember> members = new ArrayList<>();
 
+    @BatchSize(size = 20)
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks = new ArrayList<>();
 
+    @BatchSize(size = 20)
     @OneToMany(mappedBy = "project")
     private List<Channel> channels = new ArrayList<>();
 }

@@ -91,23 +91,12 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional(readOnly = true)
     public TaskDetailResponse getTaskById(UUID taskId, UUID requesterId) {
-        Task task = taskRepository.findById(taskId)
+        Task task = taskRepository.findTaskDetailById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTeamMembership(task.getTeamId(), requesterId);
+        authorizationService.verifyTaskAccess(task, requesterId);
 
-        String projectName = null;
-        if (task.getProjectId() != null) {
-            projectName = projectRepository.findById(task.getProjectId())
-                    .map(Project::getName)
-                    .orElse(null);
-        }
-
-        String teamName = teamService.getTeamById(task.getTeamId()).getName();
-
-        List<TaskMember> taskMembers = taskMemberRepository.findByIdTaskId(taskId);
-
-        return TaskDetailResponse.from(task, teamName, projectName, taskMembers);
+        return TaskDetailResponse.from(task);
     }
 
     @Override
@@ -116,7 +105,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskUpdateAcess(taskId, requesterId);
+        authorizationService.verifyTaskAccess(task, requesterId);
 
         task.setTitle(request.title());
         task.setDescription(request.description());
@@ -134,7 +123,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskUpdateAcess(taskId, requesterId);
+        authorizationService.verifyTaskAccess(task, requesterId);
 
         task.setStatus(newStatus);
 
@@ -149,7 +138,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskUpdateAcess(taskId, requesterId);
+        authorizationService.verifyTaskAccess(task, requesterId);
 
         taskRepository.delete(task);
     }
@@ -160,7 +149,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskUpdateAcess(task.getTeamId(), requesterId);
+        authorizationService.verifyTaskAccess(task, requesterId);
 
         List<TaskMember> taskMembers = taskMemberRepository.findByIdTaskId(taskId);
 
@@ -175,7 +164,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskUpdateAcess(taskId, requesterId);
+        authorizationService.verifyTaskAccess(task, requesterId);
 
         User userToAssign = userService.findById(request.userId());
 

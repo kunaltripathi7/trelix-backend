@@ -55,9 +55,13 @@ public class AuthorizationService {
         }
     }
 
-    public void verifyTaskUpdateAcess(UUID taskId, UUID userId) {
+    public void verifyTaskAccess(UUID taskId, UUID userId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
+        verifyTaskAccess(task, userId);
+    }
+
+    public void verifyTaskAccess(Task task, UUID userId) {
         if (taskMemberRepository.existsByIdTaskIdAndIdUserId(task.getId(), userId)) return;
         if (task.getProjectId() != null) {
             Optional<ProjectMember> projectMember = projectMemberRepository.findByIdProjectIdAndIdUserId(task.getProjectId(), userId);
@@ -223,4 +227,3 @@ public class AuthorizationService {
 //            throw new AccessDeniedException("Event must be associated with a team, project, or task.");
 //        }
 //    }
-
