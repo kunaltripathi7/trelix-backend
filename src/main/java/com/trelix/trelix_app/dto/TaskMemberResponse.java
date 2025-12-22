@@ -3,7 +3,9 @@ package com.trelix.trelix_app.dto;
 import com.trelix.trelix_app.entity.TaskMember;
 import com.trelix.trelix_app.enums.TaskRole;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public record TaskMemberResponse(
         UUID userId,
@@ -20,5 +22,11 @@ public record TaskMemberResponse(
                 taskMember.getRole(),
                 taskMember.getCreatedAt()
         );
+    }
+
+    public static List<TaskMemberResponse> from(List<TaskMember> taskMembers) {
+        return taskMembers.stream()
+                .map(TaskMemberResponse::from)
+                .collect(Collectors.toList());
     }
 }

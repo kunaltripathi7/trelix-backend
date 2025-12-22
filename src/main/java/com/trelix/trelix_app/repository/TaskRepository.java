@@ -52,4 +52,11 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
            "WHERE t.id = :taskId")
     Optional<Task> findTaskDetailById(@Param("taskId") UUID taskId);
 
+
+    @Query("SELECT t from Task t " +
+            "LEFT JOIN FETCH t.members tm " +
+            "LEFT JOIN FETCH tm.user " +
+            "where t.id = :taskId")
+    Optional<Task> findTaskMembersById(@Param("taskId") UUID taskId);
+
 }

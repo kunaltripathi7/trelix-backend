@@ -1,10 +1,8 @@
 package com.trelix.trelix_app.dto;
 
 import com.trelix.trelix_app.enums.TaskPriority;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
+
 import java.time.LocalDate;
 
 public record UpdateTaskRequest(
@@ -18,6 +16,6 @@ public record UpdateTaskRequest(
         @NotNull(message = "Task priority cannot be null")
         TaskPriority priority,
 
-        @Future(message = "Due date must be a future date")
+        @FutureOrPresent(message = "Due date must be a future date")
         LocalDate dueDate
 ) {}

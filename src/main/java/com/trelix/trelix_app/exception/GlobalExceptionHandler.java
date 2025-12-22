@@ -136,6 +136,12 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedException(UnauthorizedException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = buildErrorResponse(ex.getMessage(), ex.getErrorCode(), request.getRequestURI() );
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAllUncaughtException(Exception ex, HttpServletRequest request) {
         logger.error("An unexpected error occurred at path: {}", request.getRequestURI(), ex);

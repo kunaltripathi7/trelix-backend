@@ -146,16 +146,11 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional(readOnly = true)
     public List<TaskMemberResponse> getTaskMembers(UUID taskId, UUID requesterId) {
-        Task task = taskRepository.findById(taskId)
+        Task task = taskRepository.findTaskMembersById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
         authorizationService.verifyTaskAccess(task, requesterId);
-
-        List<TaskMember> taskMembers = taskMemberRepository.findByIdTaskId(taskId);
-
-        return taskMembers.stream()
-                .map(TaskMemberResponse::from)
-                .collect(Collectors.toList());
+        return TaskMemberResponse.from(task.getMembers());
     }
 
     @Override
@@ -168,10 +163,9 @@ public class TaskServiceImpl implements TaskService {
 
         User userToAssign = userService.findById(request.userId());
 
-        authorizationService.verifyTeamMembership(task.getTeamId(), request.userId());
         if (task.getProjectId() != null) {
             authorizationService.verifyProjectMembership(task.getProjectId(), request.userId());
-        }
+        } else authorizationService.verifyTeamMembership(task.getTeamId(), request.userId());
 
         if (taskMemberRepository.existsByIdTaskIdAndIdUserId(taskId, request.userId())) {
             throw new ConflictException("User " + request.userId() + " is already assigned to task " + taskId, ErrorCode.INVALID_INPUT);

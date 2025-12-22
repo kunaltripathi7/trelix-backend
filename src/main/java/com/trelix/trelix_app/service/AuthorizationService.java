@@ -21,8 +21,6 @@ public class AuthorizationService {
     private final ProjectMemberRepository projectMemberRepository;
     private final TaskMemberRepository taskMemberRepository;
     private final TaskRepository taskRepository;
-//    private final MessageRepository messageRepository;
-//    private final ChannelRepository channelRepository;
 
     public TeamUser verifyTeamMembership(UUID teamId, UUID userId) {
         return teamUserRepository.findById_TeamIdAndId_UserId(teamId, userId)
