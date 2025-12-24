@@ -1,14 +1,18 @@
 package com.trelix.trelix_app.validation;
 
-import com.trelix.trelix_app.dto.CreateTaskRequest;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class EitherTeamOrProjectValidator implements ConstraintValidator<EitherTeamOrProject, CreateTaskRequest> {
+// first is the trigger annotaion that will trigger and 2nd is the data on which we will perform the action.
+public class EitherTeamOrProjectValidator implements ConstraintValidator<EitherTeamOrProject, TeamProjectAware> {
 
     @Override
-    public boolean isValid(CreateTaskRequest request, ConstraintValidatorContext context) {
-        if (request == null) return true; // for other validators to handle null if it is there.
-        return (request.teamId() == null) != (request.projectId() == null);
+    public boolean isValid(TeamProjectAware value, ConstraintValidatorContext context) {
+        if (value == null) return true; // Let @NotNull handle null objects
+
+        boolean hasTeam = value.teamId() != null;
+        boolean hasProject = value.projectId() != null;
+
+        return hasTeam ^ hasProject;
     }
 }

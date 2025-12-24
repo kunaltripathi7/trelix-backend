@@ -1,9 +1,11 @@
 package com.trelix.trelix_app.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.trelix.trelix_app.entity.Channel;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ChannelResponse(
         UUID id,
         UUID teamId,

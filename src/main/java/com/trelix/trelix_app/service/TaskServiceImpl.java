@@ -20,13 +20,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,9 +34,7 @@ public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
     private final TaskMemberRepository taskMemberRepository;
-    private final ProjectRepository projectRepository;
     private final UserService userService;
-    private final TeamService teamService;
     private final AuthorizationService authorizationService;
 
     @Override
@@ -49,11 +47,13 @@ public class TaskServiceImpl implements TaskService {
         if (request.projectId() != null) {
             project = authorizationService.verifyProjectMembership(request.projectId(), creatorId).getProject();
             projectId = request.projectId();
+            team = project.getTeam();
+            teamId = team.getId();
         }
-        else {
+        else if (request.teamId() != null) {
             team = authorizationService.verifyTeamMembership(request.teamId(), creatorId).getTeam();
             teamId = request.teamId();
-        }
+        } else throw new IllegalArgumentException("Task must belong to either a Project or a Team");
 
         TaskStatus status = Optional.ofNullable(request.status()).orElse(TaskStatus.TODO);
         TaskPriority priority = Optional.ofNullable(request.priority()).orElse(TaskPriority.MEDIUM);
@@ -94,7 +94,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findTaskDetailById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskAccess(task, requesterId);
+        authorizationService.verifyTaskReadAccess(task, requesterId);
 
         return TaskDetailResponse.from(task);
     }
@@ -105,7 +105,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskAccess(task, requesterId);
+        authorizationService.verifyTaskWriteAccess(task, requesterId);
 
         task.setTitle(request.title());
         task.setDescription(request.description());
@@ -123,7 +123,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskAccess(task, requesterId);
+        authorizationService.verifyTaskWriteAccess(task, requesterId);
 
         task.setStatus(newStatus);
 
@@ -138,7 +138,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskAccess(task, requesterId);
+        authorizationService.verifyTaskWriteAccess(task, requesterId);
 
         taskRepository.delete(task);
     }
@@ -149,7 +149,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findTaskMembersById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskAccess(task, requesterId);
+        authorizationService.verifyTaskReadAccess(task, requesterId);
         return TaskMemberResponse.from(task.getMembers());
     }
 
@@ -159,13 +159,19 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskAccess(task, requesterId);
+        authorizationService.verifyTaskReadAccess(task, requesterId);
+
+        if (!request.userId().equals(requesterId)) {
+             authorizationService.verifyTaskWriteAccess(task, requesterId);
+        }
 
         User userToAssign = userService.findById(request.userId());
 
         if (task.getProjectId() != null) {
-            authorizationService.verifyProjectMembership(task.getProjectId(), request.userId());
-        } else authorizationService.verifyTeamMembership(task.getTeamId(), request.userId());
+             authorizationService.verifyProjectMembership(task.getProjectId(), request.userId());
+        } else {
+             authorizationService.verifyTeamMembership(task.getTeamId(), request.userId());
+        }
 
         if (taskMemberRepository.existsByIdTaskIdAndIdUserId(taskId, request.userId())) {
             throw new ConflictException("User " + request.userId() + " is already assigned to task " + taskId, ErrorCode.INVALID_INPUT);
@@ -178,9 +184,13 @@ public class TaskServiceImpl implements TaskService {
                 .role(request.role())
                 .build();
 
-        TaskMember savedTaskMember = taskMemberRepository.save(taskMember);
-
-        return TaskMemberResponse.from(savedTaskMember);
+        // race condition to tackle when two threads are trying to insert same (taskId, userId) -> DB will throw constraint error
+        try {
+            TaskMember savedTaskMember = taskMemberRepository.save(taskMember);
+            return TaskMemberResponse.from(savedTaskMember);
+        } catch (DataIntegrityViolationException e) {
+            throw new ConflictException("User " + request.userId() + " is already assigned to task " + taskId, ErrorCode.INVALID_INPUT);
+        }
     }
 
     @Override
@@ -189,7 +199,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskAdmin(taskId, requesterId);
+        authorizationService.verifyTaskWriteAccess(task, requesterId);
 
         TaskMember taskMember = taskMemberRepository.findByIdTaskIdAndIdUserId(taskId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User " + userId + " is not a member of task " + taskId));
@@ -207,11 +217,15 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
-        authorizationService.verifyTaskMembership(taskId, requesterId);
+        if (userId.equals(requesterId)) {
+             authorizationService.verifyTaskMembership(taskId, requesterId);
+        } else {
+             authorizationService.verifyTaskWriteAccess(task, requesterId);
+        }
 
         TaskMember taskMember = taskMemberRepository.findByIdTaskIdAndIdUserId(taskId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User " + userId + " is not a member of task " + taskId));
-
+        
         taskMemberRepository.delete(taskMember);
     }
 }

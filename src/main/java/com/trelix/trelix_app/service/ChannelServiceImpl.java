@@ -1,127 +1,92 @@
-//package com.trelix.trelix_app.service;
-//
-//import com.trelix.trelix_app.dto.AddChannelMemberRequest;
-//import com.trelix.trelix_app.dto.ChannelDetailResponse;
-//import com.trelix.trelix_app.dto.ChannelMemberResponse;
-//import com.trelix.trelix_app.dto.ChannelResponse;
-//import com.trelix.trelix_app.dto.CreateChannelRequest;
-//import com.trelix.trelix_app.dto.UpdateChannelRequest;
-//import com.trelix.trelix_app.entity.Channel;
-//import com.trelix.trelix_app.entity.ChannelMember;
-//import com.trelix.trelix_app.entity.Project;
-//import com.trelix.trelix_app.entity.Team;
-//import com.trelix.trelix_app.entity.User;
-//import com.trelix.trelix_app.enums.ChannelRole;
-//import com.trelix.trelix_app.exception.BadRequestException;
-//import com.trelix.trelix_app.exception.ConflictException;
-//import com.trelix.trelix_app.exception.ForbiddenException;
-//import com.trelix.trelix_app.exception.ResourceNotFoundException;
-//import com.trelix.trelix_app.repository.ChannelMemberRepository;
-//import com.trelix.trelix_app.repository.ChannelRepository;
-//import com.trelix.trelix_app.repository.ProjectRepository;
-//import com.trelix.trelix_app.repository.TeamRepository; // Assuming this exists for team validation
-//import org.springframework.stereotype.Service;
-//import org.springframework.transaction.annotation.Transactional;
-//
-//import java.util.List;
-//import java.util.Optional;
-//import java.util.UUID;
-//import java.util.stream.Collectors;
-//
-//@Service
-//public class ChannelServiceImpl implements ChannelService {
-//
-//    private final ChannelRepository channelRepository;
-//    private final ChannelMemberRepository channelMemberRepository;
-//    private final TeamRepository teamRepository; // For team existence validation
-//    private final ProjectRepository projectRepository; // For project existence and team association validation
-//    private final UserService userService; // To fetch User details for ChannelMember
-//    private final TeamService teamService; // To get team name
-//    private final ProjectService projectService; // To get project name
-//    private final TeamAuthorizationService teamAuthorizationService;
-//    private final ProjectAuthorizationService projectAuthorizationService;
-//    private final ChannelAuthorizationService channelAuthorizationService;
-//
-//    public ChannelServiceImpl(ChannelRepository channelRepository,
-//                              ChannelMemberRepository channelMemberRepository,
-//                              TeamRepository teamRepository,
-//                              ProjectRepository projectRepository,
-//                              UserService userService,
-//                              TeamService teamService,
-//                              ProjectService projectService,
-//                              TeamAuthorizationService teamAuthorizationService,
-//                              ProjectAuthorizationService projectAuthorizationService,
-//                              ChannelAuthorizationService channelAuthorizationService) {
-//        this.channelRepository = channelRepository;
-//        this.channelMemberRepository = channelMemberRepository;
-//        this.teamRepository = teamRepository;
-//        this.projectRepository = projectRepository;
-//        this.userService = userService;
-//        this.teamService = teamService;
-//        this.projectService = projectService;
-//        this.teamAuthorizationService = teamAuthorizationService;
-//        this.projectAuthorizationService = projectAuthorizationService;
-//        this.channelAuthorizationService = channelAuthorizationService;
-//    }
-//
-//    @Override
-//    @Transactional
-//    public ChannelResponse createChannel(CreateChannelRequest request, UUID creatorId) {
-//        // Determine channel type and perform initial validations
-//        boolean isTeamChannel = request.teamId() != null && request.projectId() == null;
-//        boolean isProjectChannel = request.teamId() != null && request.projectId() != null;
-//        boolean isAdHocChannel = request.teamId() == null && request.projectId() == null;
-//
-//        if (request.teamId() == null && request.projectId() != null) {
-//            throw new BadRequestException("Cannot create a project channel without a team ID.");
-//        }
-//
-//        // Validate team and project existence and creator's membership
-//        if (request.teamId() != null) {
-//            Team team = teamRepository.findById(request.teamId())
-//                    .orElseThrow(() -> new ResourceNotFoundException("Team not found with ID: " + request.teamId()));
-//            teamAuthorizationService.verifyTeamMember(request.teamId(), creatorId);
-//        }
-//
-//        if (request.projectId() != null) {
-//            Project project = projectRepository.findById(request.projectId())
-//                    .orElseThrow(() -> new ResourceNotFoundException("Project not found with ID: " + request.projectId()));
-//            if (!project.getTeamId().equals(request.teamId())) {
-//                throw new BadRequestException("Project " + request.projectId() + " does not belong to team " + request.teamId());
-//            }
-//            projectAuthorizationService.verifyProjectMember(request.projectId(), creatorId);
-//        }
-//
-//        // Create Channel entity
-//        Channel channel = Channel.builder()
-//                .teamId(request.teamId())
-//                .projectId(request.projectId())
-//                .name(request.name())
-//                // Assuming description and isPrivate are new fields in Channel entity
-//                // If not, these lines should be removed or adapted
-//                // .description(request.description())
-//                // .isPrivate(request.isPrivate())
-//                .build();
-//
-//        Channel savedChannel = channelRepository.save(channel);
-//
-//        // For Ad-hoc channels, add creator as OWNER
-//        if (isAdHocChannel) {
-//            User creator = userService.findById(creatorId)
-//                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + creatorId));
-//
-//            ChannelMember channelMember = ChannelMember.builder()
-//                    .id(new ChannelMember.ChannelMemberId(savedChannel.getId(), creatorId))
-//                    .channel(savedChannel)
-//                    .user(creator)
-//                    .role(ChannelRole.OWNER.name())
-//                    .build();
-//            channelMemberRepository.save(channelMember);
-//        }
-//
-//        return ChannelResponse.from(savedChannel);
-//    }
-//
+package com.trelix.trelix_app.service;
+
+import com.trelix.trelix_app.dto.AddChannelMemberRequest;
+import com.trelix.trelix_app.dto.ChannelDetailResponse;
+import com.trelix.trelix_app.dto.ChannelMemberResponse;
+import com.trelix.trelix_app.dto.ChannelResponse;
+import com.trelix.trelix_app.dto.CreateChannelRequest;
+import com.trelix.trelix_app.dto.UpdateChannelRequest;
+import com.trelix.trelix_app.entity.Channel;
+import com.trelix.trelix_app.entity.ChannelMember;
+import com.trelix.trelix_app.entity.Project;
+import com.trelix.trelix_app.entity.Team;
+import com.trelix.trelix_app.entity.User;
+import com.trelix.trelix_app.enums.ChannelRole;
+import com.trelix.trelix_app.exception.BadRequestException;
+import com.trelix.trelix_app.exception.ConflictException;
+import com.trelix.trelix_app.exception.ForbiddenException;
+import com.trelix.trelix_app.exception.ResourceNotFoundException;
+import com.trelix.trelix_app.repository.ChannelMemberRepository;
+import com.trelix.trelix_app.repository.ChannelRepository;
+import com.trelix.trelix_app.repository.ProjectRepository;
+import com.trelix.trelix_app.repository.TeamRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class ChannelServiceImpl implements ChannelService {
+
+    private final ChannelRepository channelRepository;
+    private final ChannelMemberRepository channelMemberRepository;
+    private final TeamRepository teamRepository;
+    private final ProjectRepository projectRepository;
+    private final UserService userService;
+    private final AuthorizationService authorizationService;
+
+
+    @Override
+    @Transactional
+    public ChannelResponse createChannel(CreateChannelRequest request, UUID creatorId) {
+        boolean isTeamChannel = request.teamId() != null && request.projectId() == null;
+        boolean isProjectChannel = request.teamId() != null && request.projectId() != null;
+        boolean isAdHocChannel = request.teamId() == null && request.projectId() == null;
+        Team team = null;
+        Project project = null;
+
+        if (isProjectChannel) {
+            authorizationService.verifyProjectAdmin(request.projectId(), creatorId);
+            project = projectRepository.findById(request.projectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Project not found with the given ID"));
+            team = project.getTeam();
+        }
+        else if (isTeamChannel){
+            authorizationService.verifyTeamAdmin(request.teamId(), creatorId);
+            team = teamRepository.findById(request.teamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team not found with the given ID"));
+        }
+
+        Channel channel = Channel.builder()
+                .teamId(request.teamId())
+                .projectId(request.projectId())
+                .team(team)
+                .project(project)
+                .name(request.name())
+                .build();
+
+        Channel savedChannel = channelRepository.save(channel);
+
+        if (isAdHocChannel) {
+            User creator = userService.findById(creatorId);
+
+            ChannelMember channelMember = ChannelMember.builder()
+                    .id(new ChannelMember.ChannelMemberId(savedChannel.getId(), creatorId))
+                    .channel(savedChannel)
+                    .user(creator)
+                    .role(ChannelRole.OWNER)
+                    .build();
+            channelMemberRepository.save(channelMember);
+        }
+
+        return ChannelResponse.from(savedChannel);
+    }
+
 //    @Override
 //    @Transactional(readOnly = true)
 //    public List<ChannelResponse> getChannels(UUID teamId, UUID projectId, String type, UUID requesterId) {
@@ -388,4 +353,4 @@
 //            throw new BadRequestException("Invalid channel type configuration for channel ID: " + channelId);
 //        }
 //    }
-//}
+}

@@ -3,6 +3,7 @@ package com.trelix.trelix_app.dto;
 import com.trelix.trelix_app.enums.TaskPriority;
 import com.trelix.trelix_app.enums.TaskStatus;
 import com.trelix.trelix_app.validation.EitherTeamOrProject;
+import com.trelix.trelix_app.validation.TeamProjectAware;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -28,4 +29,4 @@ public record CreateTaskRequest(
 
         @FutureOrPresent(message = "Due date must be today or a future date")
         LocalDate dueDate
-) {}
+) implements TeamProjectAware {}

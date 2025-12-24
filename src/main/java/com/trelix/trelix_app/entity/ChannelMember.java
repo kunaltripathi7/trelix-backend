@@ -1,5 +1,6 @@
 package com.trelix.trelix_app.entity;
 
+import com.trelix.trelix_app.enums.ChannelRole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -29,8 +30,9 @@ public class ChannelMember {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role;
+    private ChannelRole role;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

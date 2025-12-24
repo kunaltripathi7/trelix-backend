@@ -5,10 +5,6 @@ public enum TaskRole {
     REVIEWER;   // Reviews the task, can approve/request changes
 
     public boolean canEditTask() {
-        return this == ASSIGNEE;
-    }
-
-    public boolean canReview() {
-        return this == REVIEWER;
+        return this == ASSIGNEE || this == REVIEWER;
     }
 }

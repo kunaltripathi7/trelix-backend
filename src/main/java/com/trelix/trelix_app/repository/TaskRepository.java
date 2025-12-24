@@ -2,6 +2,7 @@ package com.trelix.trelix_app.repository;
 
 import com.trelix.trelix_app.entity.Task;
 import com.trelix.trelix_app.enums.TaskPriority;
+import com.trelix.trelix_app.enums.TaskRole;
 import com.trelix.trelix_app.enums.TaskStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
