@@ -13,18 +13,18 @@ import java.util.UUID;
 public interface ChannelService {
     ChannelResponse createChannel(CreateChannelRequest request, UUID creatorId);
 
-//    List<ChannelResponse> getChannels(UUID teamId, UUID projectId, String type, UUID requesterId);
-//
-//    ChannelDetailResponse getChannelById(UUID channelId, UUID requesterId);
-//
-//    ChannelResponse updateChannel(UUID channelId, UpdateChannelRequest request, UUID requesterId);
-//
-//    void deleteChannel(UUID channelId, UUID requesterId);
-//
-//    List<ChannelMemberResponse> getChannelMembers(UUID channelId, UUID requesterId);
-//
-//    ChannelMemberResponse addMember(UUID channelId, AddChannelMemberRequest request, UUID requesterId);
-//
-//    void removeMember(UUID channelId, UUID userId, UUID requesterId);
+    List<ChannelResponse> getChannels(UUID teamId, UUID projectId, String type, UUID requesterId);
+
+    ChannelDetailResponse getChannelById(UUID channelId, UUID requesterId);
+
+    ChannelResponse updateChannel(UUID channelId, UpdateChannelRequest request, UUID requesterId);
+
+    void deleteChannel(UUID channelId, UUID requesterId);
+
+    List<ChannelMemberResponse> getChannelMembers(UUID channelId, UUID requesterId);
+
+    ChannelMemberResponse addMember(UUID channelId, AddChannelMemberRequest request, UUID requesterId);
+
+    void removeMember(UUID channelId, UUID userId, UUID requesterId);
 
 }

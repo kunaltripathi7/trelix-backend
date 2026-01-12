@@ -13,8 +13,8 @@ import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.TeamRepository;
 import com.trelix.trelix_app.repository.TeamUserRepository;
 import com.trelix.trelix_app.repository.UserRepository;
-import com.trelix.trelix_app.util.AppMapper;
 import jakarta.persistence.EntityManager;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -37,8 +37,8 @@ public class TeamServiceImpl implements TeamService {
 
     @Override
     public Team getTeamById(UUID id) {
-        return teamRepository.findById(id).
-                orElseThrow(() -> new ResourceNotFoundException("Team not founc with the given Id " + id));
+        return teamRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not founc with the given Id " + id));
     }
 
     @Override
@@ -50,9 +50,11 @@ public class TeamServiceImpl implements TeamService {
         team.setName(request.name());
         team.setDescription(request.description());
 
-        Team savedTeam = teamRepository.save(team); // created and updated timestamp -> hibernate injects those now() in the sql but then the java objects and db is out of sync. flush and refetch. just send null and let frontend handle it
-//        teamRepository.flush();
-//        em.refresh(savedTeam);
+        Team savedTeam = teamRepository.save(team); // created and updated timestamp -> hibernate injects those now() in
+                                                    // the sql but then the java objects and db is out of sync. flush
+                                                    // and refetch. just send null and let frontend handle it
+        // teamRepository.flush();
+        // em.refresh(savedTeam);
 
         TeamUser.TeamUserId teamUserId = new TeamUser.TeamUserId(creator.getId(), savedTeam.getId());
         TeamUser teamUser = TeamUser.builder()
@@ -130,7 +132,8 @@ public class TeamServiceImpl implements TeamService {
         User memberUser = userService.findById(request.userId());
 
         if (teamUserRepository.existsById_TeamIdAndId_UserId(teamId, request.userId())) {
-            throw new ConflictException("User " + request.userId() + " is already a member of team " + teamId, ErrorCode.DATABASE_CONFLICT);
+            throw new ConflictException("User " + request.userId() + " is already a member of team " + teamId,
+                    ErrorCode.DATABASE_CONFLICT);
         }
 
         TeamUser.TeamUserId teamUserId = new TeamUser.TeamUserId(memberUser.getId(), team.getId());
@@ -154,14 +157,18 @@ public class TeamServiceImpl implements TeamService {
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
 
         TeamUser targetTeamUser = teamUserRepository.findById_TeamIdAndId_UserId(teamId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Member with user ID " + userId + " not found in team " + teamId));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Member with user ID " + userId + " not found in team " + teamId));
 
         if (userId.equals(requesterId)) {
-            throw new InvalidRequestException("You cannot change your own role through this endpoint.", ErrorCode.INVALID_INPUT);
+            throw new InvalidRequestException("You cannot change your own role through this endpoint.",
+                    ErrorCode.INVALID_INPUT);
         }
 
         if (newRole == TeamRole.OWNER) {
-            throw new InvalidRequestException("Direct promotion to OWNER is not permitted. Use the dedicated ownership transfer endpoint.", ErrorCode.INVALID_INPUT);
+            throw new InvalidRequestException(
+                    "Direct promotion to OWNER is not permitted. Use the dedicated ownership transfer endpoint.",
+                    ErrorCode.INVALID_INPUT);
         }
 
         targetTeamUser.setRole(newRole);
@@ -179,13 +186,17 @@ public class TeamServiceImpl implements TeamService {
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
 
         TeamUser targetTeamUser = teamUserRepository.findById_TeamIdAndId_UserId(teamId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Member with user ID " + userId + " not found in team " + teamId));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Member with user ID " + userId + " not found in team " + teamId));
 
         if (userId.equals(requesterId)) {
-            throw new InvalidRequestException("You cannot remove yourself from the team through this endpoint. Please use a dedicated 'leave team' function.", ErrorCode.INVALID_INPUT);
+            throw new InvalidRequestException(
+                    "You cannot remove yourself from the team through this endpoint. Please use a dedicated 'leave team' function.",
+                    ErrorCode.INVALID_INPUT);
         }
 
-        if (targetTeamUser.getRole() == TeamRole.OWNER) throw new InvalidRequestException("Cannot remove the OWNER of the team.", ErrorCode.INVALID_INPUT);
+        if (targetTeamUser.getRole() == TeamRole.OWNER)
+            throw new InvalidRequestException("Cannot remove the OWNER of the team.", ErrorCode.INVALID_INPUT);
 
         teamUserRepository.deleteById_TeamIdAndId_UserId(teamId, userId);
     }
@@ -201,9 +212,9 @@ public class TeamServiceImpl implements TeamService {
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Could not find owner for team: " + teamId));
 
-         if (!currentOwner.getUser().getId().equals(requesterId)) {
-             throw new ForbiddenException("Only the current owner can transfer ownership.", ErrorCode.FORBIDDEN);
-         }
+        if (!currentOwner.getUser().getId().equals(requesterId)) {
+            throw new ForbiddenException("Only the current owner can transfer ownership.", ErrorCode.FORBIDDEN);
+        }
 
         User newOwnerUser = userService.findById(newOwnerId);
 
@@ -221,9 +232,9 @@ public class TeamServiceImpl implements TeamService {
         Team updatedTeam = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found after ownership transfer."));
 
-
-        return  List.of(savedOldOwner, savedNewOwner);
+        return List.of(savedOldOwner, savedNewOwner);
     }
 }
 
-// why a different endpoint for transferring ownership -> ? Safety, Clarity, Different operation, future maintenance
+// why a different endpoint for transferring ownership -> ? Safety, Clarity,
+// Different operation, future maintenance

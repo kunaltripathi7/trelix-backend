@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import com.trelix.trelix_app.security.CustomUserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,7 +17,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
-//@RestController
+@RestController
 @RequestMapping("/v1/attachments")
 @RequiredArgsConstructor
 @Validated
@@ -30,9 +30,9 @@ public class AttachmentController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("entityType") EntityType entityType,
             @RequestParam("entityId") UUID entityId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        UUID uploaderId = UUID.fromString(userDetails.getUsername());
+        UUID uploaderId = userDetails.getId();
         AttachmentResponse response = attachmentService.uploadAttachment(file, entityType, entityId, uploaderId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -41,9 +41,9 @@ public class AttachmentController {
     public ResponseEntity<List<AttachmentResponse>> getAttachments(
             @RequestParam EntityType entityType,
             @RequestParam UUID entityId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        UUID requesterId = userDetails.getId();
         List<AttachmentResponse> responses = attachmentService.getAttachmentsByEntity(entityType, entityId, requesterId);
         return ResponseEntity.ok(responses);
     }
@@ -51,9 +51,9 @@ public class AttachmentController {
     @GetMapping("/{attachmentId}")
     public ResponseEntity<AttachmentResponse> getAttachmentById(
             @PathVariable UUID attachmentId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        UUID requesterId = userDetails.getId();
         AttachmentResponse response = attachmentService.getAttachmentById(attachmentId, requesterId);
         return ResponseEntity.ok(response);
     }
@@ -61,9 +61,9 @@ public class AttachmentController {
     @GetMapping("/{attachmentId}/download")
     public ResponseEntity<Void> downloadAttachment(
             @PathVariable UUID attachmentId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        UUID requesterId = userDetails.getId();
         String downloadUrl = attachmentService.getDownloadUrl(attachmentId, requesterId);
         return ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(downloadUrl))
@@ -73,9 +73,9 @@ public class AttachmentController {
     @DeleteMapping("/{attachmentId}")
     public ResponseEntity<Void> deleteAttachment(
             @PathVariable UUID attachmentId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        UUID requesterId = UUID.fromString(userDetails.getUsername());
+        UUID requesterId = userDetails.getId();
         attachmentService.deleteAttachment(attachmentId, requesterId);
         return ResponseEntity.noContent().build();
     }

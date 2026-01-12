@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/projects")
+@RequestMapping("/v1/projects")
 @Validated
 @RequiredArgsConstructor
 public class ProjectController {
@@ -32,11 +32,10 @@ public class ProjectController {
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(
             @Valid @RequestBody CreateProjectRequest request,
-            @AuthenticationPrincipal CustomUserDetails  currentUser) {
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         ProjectResponse projectResponse = projectService.createProject(request, currentUser.getId());
         return new ResponseEntity<>(projectResponse, HttpStatus.CREATED);
     }
-
 
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> getProjectsByTeam(
@@ -47,7 +46,6 @@ public class ProjectController {
         return ResponseEntity.ok(projects);
     }
 
-
     @GetMapping("/{projectId}")
     public ResponseEntity<ProjectDetailResponse> getProjectById(
             @PathVariable @NotNull UUID projectId,
@@ -56,7 +54,6 @@ public class ProjectController {
         ProjectDetailResponse projectDetail = projectService.getProjectById(projectId, currentUser.getId());
         return ResponseEntity.ok(projectDetail);
     }
-
 
     @PutMapping("/{projectId}")
     public ResponseEntity<ProjectResponse> updateProject(
@@ -68,7 +65,6 @@ public class ProjectController {
         return ResponseEntity.ok(updatedProject);
     }
 
-
     @DeleteMapping("/{projectId}")
     public ResponseEntity<Void> deleteProject(
             @PathVariable @NotNull UUID projectId,
@@ -78,7 +74,6 @@ public class ProjectController {
         return ResponseEntity.noContent().build();
     }
 
-
     @GetMapping("/{projectId}/members")
     public ResponseEntity<List<ProjectMemberResponse>> getProjectMembers(
             @PathVariable @NotNull UUID projectId,
@@ -87,7 +82,6 @@ public class ProjectController {
         List<ProjectMemberResponse> members = projectService.getProjectMembers(projectId, currentUser.getId());
         return ResponseEntity.ok(members);
     }
-
 
     @PostMapping("/{projectId}/members")
     public ResponseEntity<ProjectMemberResponse> addMember(
@@ -99,7 +93,6 @@ public class ProjectController {
         return new ResponseEntity<>(newMember, HttpStatus.CREATED);
     }
 
-
     @PutMapping("/{projectId}/members/{userId}")
     public ResponseEntity<ProjectMemberResponse> updateMemberRole(
             @PathVariable @NotNull UUID projectId,
@@ -107,10 +100,10 @@ public class ProjectController {
             @Valid @RequestBody UpdateProjectMemberRoleRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        ProjectMemberResponse updatedMember = projectService.updateMemberRole(projectId, userId, request.role(), currentUser.getId());
+        ProjectMemberResponse updatedMember = projectService.updateMemberRole(projectId, userId, request.role(),
+                currentUser.getId());
         return ResponseEntity.ok(updatedMember);
     }
-
 
     @DeleteMapping("/{projectId}/members/{userId}")
     public ResponseEntity<Void> removeMember(
