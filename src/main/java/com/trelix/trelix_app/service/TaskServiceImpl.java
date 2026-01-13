@@ -7,6 +7,7 @@ import com.trelix.trelix_app.entity.Team;
 import com.trelix.trelix_app.entity.TaskMember;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.ErrorCode;
+import com.trelix.trelix_app.enums.NotificationType;
 import com.trelix.trelix_app.enums.TaskPriority;
 import com.trelix.trelix_app.enums.TaskRole;
 import com.trelix.trelix_app.enums.TaskStatus;
@@ -36,6 +37,7 @@ public class TaskServiceImpl implements TaskService {
     private final TaskMemberRepository taskMemberRepository;
     private final UserService userService;
     private final AuthorizationService authorizationService;
+    private final KafkaProducerService kafkaProducerService;
 
     @Override
     @Transactional
@@ -49,11 +51,11 @@ public class TaskServiceImpl implements TaskService {
             projectId = request.projectId();
             team = project.getTeam();
             teamId = team.getId();
-        }
-        else if (request.teamId() != null) {
+        } else if (request.teamId() != null) {
             team = authorizationService.verifyTeamMembership(request.teamId(), creatorId).getTeam();
             teamId = request.teamId();
-        } else throw new IllegalArgumentException("Task must belong to either a Project or a Team");
+        } else
+            throw new IllegalArgumentException("Task must belong to either a Project or a Team");
 
         TaskStatus status = Optional.ofNullable(request.status()).orElse(TaskStatus.TODO);
         TaskPriority priority = Optional.ofNullable(request.priority()).orElse(TaskPriority.MEDIUM);
@@ -77,13 +79,16 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(readOnly = true)
-    public PagedTaskResponse getTasks(UUID teamId, UUID projectId, TaskStatus status, TaskPriority priority, int page, int size, UUID requesterId, String query) {
+    public PagedTaskResponse getTasks(UUID teamId, UUID projectId, TaskStatus status, TaskPriority priority, int page,
+            int size, UUID requesterId, String query) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-        Page<Task> taskPage = taskRepository.findTasksForUser(requesterId, teamId, projectId, status, priority, query, pageable);
+        Page<Task> taskPage = taskRepository.findTasksForUser(requesterId, teamId, projectId, status, priority, query,
+                pageable);
 
-        //can't filter out here -> as it breaks the pagination and also very inefficient (non scalable)
+        // can't filter out here -> as it breaks the pagination and also very
+        // inefficient (non scalable)
 
         return PagedTaskResponse.from(taskPage);
     }
@@ -120,7 +125,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     public TaskResponse updateTaskStatus(UUID taskId, TaskStatus newStatus, UUID requesterId) {
-        Task task = taskRepository.findById(taskId)
+        Task task = taskRepository.findTaskMembersById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
         authorizationService.verifyTaskWriteAccess(task, requesterId);
@@ -128,6 +133,20 @@ public class TaskServiceImpl implements TaskService {
         task.setStatus(newStatus);
 
         Task updatedTask = taskRepository.save(task);
+
+        // Notify all task members about the status change (except the one who made the
+        // change)
+        task.getMembers().forEach(member -> {
+            if (!member.getUser().getId().equals(requesterId)) {
+                kafkaProducerService.sendNotification(new NotificationEvent(
+                        member.getUser().getId(),
+                        requesterId,
+                        NotificationType.TASK_STATUS_CHANGED,
+                        "Task Status Changed",
+                        "Task '" + task.getTitle() + "' status changed to: " + newStatus,
+                        taskId));
+            }
+        });
 
         return TaskResponse.from(updatedTask);
     }
@@ -162,19 +181,20 @@ public class TaskServiceImpl implements TaskService {
         authorizationService.verifyTaskReadAccess(task, requesterId);
 
         if (!request.userId().equals(requesterId)) {
-             authorizationService.verifyTaskWriteAccess(task, requesterId);
+            authorizationService.verifyTaskWriteAccess(task, requesterId);
         }
 
         User userToAssign = userService.findById(request.userId());
 
         if (task.getProjectId() != null) {
-             authorizationService.verifyProjectMembership(task.getProjectId(), request.userId());
+            authorizationService.verifyProjectMembership(task.getProjectId(), request.userId());
         } else {
-             authorizationService.verifyTeamMembership(task.getTeamId(), request.userId());
+            authorizationService.verifyTeamMembership(task.getTeamId(), request.userId());
         }
 
         if (taskMemberRepository.existsByIdTaskIdAndIdUserId(taskId, request.userId())) {
-            throw new ConflictException("User " + request.userId() + " is already assigned to task " + taskId, ErrorCode.INVALID_INPUT);
+            throw new ConflictException("User " + request.userId() + " is already assigned to task " + taskId,
+                    ErrorCode.INVALID_INPUT);
         }
 
         TaskMember taskMember = TaskMember.builder()
@@ -184,12 +204,21 @@ public class TaskServiceImpl implements TaskService {
                 .role(request.role())
                 .build();
 
-        // race condition to tackle when two threads are trying to insert same (taskId, userId) -> DB will throw constraint error
+        // race condition to tackle when two threads are trying to insert same (taskId,
+        // userId) -> DB will throw constraint error
         try {
             TaskMember savedTaskMember = taskMemberRepository.save(taskMember);
+            kafkaProducerService.sendNotification(new NotificationEvent(
+                    request.userId(),
+                    requesterId,
+                    NotificationType.TASK_ASSIGNED,
+                    "Task Assigned",
+                    "You have been assigned to the task: " + task.getTitle(),
+                    taskId));
             return TaskMemberResponse.from(savedTaskMember);
         } catch (DataIntegrityViolationException e) {
-            throw new ConflictException("User " + request.userId() + " is already assigned to task " + taskId, ErrorCode.INVALID_INPUT);
+            throw new ConflictException("User " + request.userId() + " is already assigned to task " + taskId,
+                    ErrorCode.INVALID_INPUT);
         }
     }
 
@@ -202,7 +231,8 @@ public class TaskServiceImpl implements TaskService {
         authorizationService.verifyTaskWriteAccess(task, requesterId);
 
         TaskMember taskMember = taskMemberRepository.findByIdTaskIdAndIdUserId(taskId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User " + userId + " is not a member of task " + taskId));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("User " + userId + " is not a member of task " + taskId));
 
         taskMember.setRole(newRole);
 
@@ -218,14 +248,15 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with ID: " + taskId));
 
         if (userId.equals(requesterId)) {
-             authorizationService.verifyTaskMembership(taskId, requesterId);
+            authorizationService.verifyTaskMembership(taskId, requesterId);
         } else {
-             authorizationService.verifyTaskWriteAccess(task, requesterId);
+            authorizationService.verifyTaskWriteAccess(task, requesterId);
         }
 
         TaskMember taskMember = taskMemberRepository.findByIdTaskIdAndIdUserId(taskId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User " + userId + " is not a member of task " + taskId));
-        
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("User " + userId + " is not a member of task " + taskId));
+
         taskMemberRepository.delete(taskMember);
     }
 }

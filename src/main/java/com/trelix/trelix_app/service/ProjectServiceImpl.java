@@ -1,6 +1,7 @@
 package com.trelix.trelix_app.service;
 
 import com.trelix.trelix_app.dto.CreateProjectRequest;
+import com.trelix.trelix_app.dto.NotificationEvent;
 import com.trelix.trelix_app.dto.ProjectDetailResponse;
 import com.trelix.trelix_app.dto.ProjectMemberResponse;
 import com.trelix.trelix_app.dto.ProjectResponse;
@@ -11,6 +12,7 @@ import com.trelix.trelix_app.entity.ProjectMember;
 import com.trelix.trelix_app.entity.Team;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.ErrorCode;
+import com.trelix.trelix_app.enums.NotificationType;
 import com.trelix.trelix_app.enums.ProjectRole;
 import com.trelix.trelix_app.exception.ConflictException;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
@@ -33,6 +35,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final AuthorizationService authorizationService;
     private final TeamService teamService;
     private final UserService userService;
+    private final KafkaProducerService kafkaProducerService;
 
     @Override
     @Transactional
@@ -46,9 +49,9 @@ public class ProjectServiceImpl implements ProjectService {
                 .name(request.name())
                 .description(request.description())
                 .build();
-    
+
         Project savedProject = projectRepository.save(project);
-    
+
         User creator = userService.findById(creatorId);
 
         ProjectMember projectMember = ProjectMember.builder()
@@ -64,7 +67,8 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    @Transactional(readOnly = true) // hibernate doesn't compare to snapshot and uses resources. -> faster (readOnly = true)
+    @Transactional(readOnly = true) // hibernate doesn't compare to snapshot and uses resources. -> faster (readOnly
+                                    // = true)
     public List<ProjectResponse> getProjectsByTeam(UUID teamId, UUID requesterId) {
         authorizationService.verifyTeamMembership(teamId, requesterId);
 
@@ -143,7 +147,8 @@ public class ProjectServiceImpl implements ProjectService {
         authorizationService.verifyTeamMembership(project.getTeamId(), request.userId());
 
         if (projectMemberRepository.existsByIdProjectIdAndIdUserId(projectId, request.userId())) {
-            throw new ConflictException("User " + request.userId() + " is already a member of project " + projectId, ErrorCode.INVALID_INPUT);
+            throw new ConflictException("User " + request.userId() + " is already a member of project " + projectId,
+                    ErrorCode.INVALID_INPUT);
         }
 
         User userToAdd = userService.findById(request.userId());
@@ -156,6 +161,13 @@ public class ProjectServiceImpl implements ProjectService {
                 .build();
 
         ProjectMember savedProjectMember = projectMemberRepository.save(projectMember);
+        kafkaProducerService.sendNotification(new NotificationEvent(
+                request.userId(),
+                requesterId,
+                NotificationType.PROJECT_INVITE,
+                "Project Invite",
+                "You have been added to project: " + project.getName(),
+                projectId));
 
         return ProjectMemberResponse.from(savedProjectMember);
     }
@@ -169,9 +181,11 @@ public class ProjectServiceImpl implements ProjectService {
         authorizationService.verifyProjectAdmin(projectId, requesterId);
 
         ProjectMember projectMember = projectMemberRepository.findByIdProjectIdAndIdUserId(projectId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User " + userId + " is not a member of project " + projectId));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User " + userId + " is not a member of project " + projectId));
 
-        if (projectMember.getRole() == ProjectRole.ADMIN && newRole == ProjectRole.MEMBER && userId.equals(requesterId)) {
+        if (projectMember.getRole() == ProjectRole.ADMIN && newRole == ProjectRole.MEMBER
+                && userId.equals(requesterId)) {
             long adminCount = projectMemberRepository.countByIdProjectIdAndRole(projectId, ProjectRole.ADMIN);
             if (adminCount == 1) {
                 throw new ConflictException("Cannot demote the last ADMIN of the project.", ErrorCode.INVALID_INPUT);
@@ -194,8 +208,8 @@ public class ProjectServiceImpl implements ProjectService {
         authorizationService.verifyProjectAdmin(projectId, requesterId);
 
         ProjectMember projectMember = projectMemberRepository.findByIdProjectIdAndIdUserId(projectId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User " + userId + " is not a member of project " + projectId));
-
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User " + userId + " is not a member of project " + projectId));
 
         if (projectMember.getRole() == ProjectRole.ADMIN) {
             long adminCount = projectMemberRepository.countByIdProjectIdAndRole(projectId, ProjectRole.ADMIN);
