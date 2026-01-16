@@ -27,39 +27,36 @@ public class KafkaConsumerService {
     @KafkaListener(topics = "trelix-notifications", groupId = "trelix-group")
     public void consume(NotificationEvent event) {
         log.info("Received notification event: {}", event);
-        throw new RuntimeException("Failed to process notification event: " + event);
 
-        // Notification notification = Notification.builder()
-        // .notifierId(event.recipientId())
-        // .actorId(event.actorId())
-        // .type(event.type())
-        // .referenceId(event.relatedEntityId())
-        // .isRead(false)
-        // .build();
+        Notification notification = Notification.builder()
+                .notifierId(event.recipientId())
+                .actorId(event.actorId())
+                .type(event.type())
+                .referenceId(event.relatedEntityId())
+                .isRead(false)
+                .build();
 
-        // Notification savedNotification = notificationRepository.save(notification);
-        // log.info("Saved notification to database: {}", savedNotification.getId());
+        Notification savedNotification = notificationRepository.save(notification);
+        log.info("Saved notification to database: {}", savedNotification.getId());
 
-        // NotificationResponse response = new NotificationResponse(
-        // savedNotification.getId(),
-        // savedNotification.getNotifierId(),
-        // savedNotification.getActorId(),
-        // null,
-        // savedNotification.getType(),
-        // savedNotification.getReferenceId(),
-        // event.message(),
-        // savedNotification.getMetadata(),
-        // savedNotification.isRead(),
-        // savedNotification.getCreatedAt());
-        // webSocketService.sendNotificationToUser(event.recipientId(), response);
-        // log.info("Pushed notification to user via WebSocket: {}",
-        // event.recipientId());
+        NotificationResponse response = new NotificationResponse(
+                savedNotification.getId(),
+                savedNotification.getNotifierId(),
+                savedNotification.getActorId(),
+                null,
+                savedNotification.getType(),
+                savedNotification.getReferenceId(),
+                event.message(),
+                savedNotification.getMetadata(),
+                savedNotification.isRead(),
+                savedNotification.getCreatedAt());
+        webSocketService.sendNotificationToUser(event.recipientId(), response);
+        log.info("Pushed notification to user via WebSocket: {}", event.recipientId());
     }
 
     @DltHandler
     public void handleDlt(NotificationEvent event) {
         log.error("DLT: Message failed after all retries. Event: {}", event);
-        // TODO: Could save to a "failed_notifications" table for manual review
-        // TODO: Could send alert to admin
+        // prod -> send an alert to admin / persist in Db as well.
     }
 }

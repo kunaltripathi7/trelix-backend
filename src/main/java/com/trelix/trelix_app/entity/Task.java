@@ -16,7 +16,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tasks")
+@Table(name = "tasks", indexes = {
+        @Index(name = "idx_tasks_project", columnList = "project_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -32,7 +34,8 @@ public class Task {
     @JoinColumn(name = "team_id", insertable = false, updatable = false)
     private Team team;
 
-    @Column(name = "team_id") // telling jpa to ignore this one while creating insert/update stmt and get the value from team
+    @Column(name = "team_id") // telling jpa to ignore this one while creating insert/update stmt and get the
+                              // value from team
     private UUID teamId;
 
     @Column(name = "project_id")
@@ -74,10 +77,13 @@ public class Task {
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskStatusChange> statusChanges = new ArrayList<>();
 
-    @Override // 0/w with @Data forces hibernate ro fetch members, status changes just to generate hashcode.
+    @Override // 0/w with @Data forces hibernate ro fetch members, status changes just to
+              // generate hashcode.
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Task task)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof Task task))
+            return false;
         return Objects.equals(id, task.getId());
     }
 
@@ -86,7 +92,3 @@ public class Task {
         return Objects.hash(id);
     }
 }
-
-
-
-

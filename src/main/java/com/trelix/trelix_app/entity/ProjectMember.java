@@ -10,7 +10,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "project_members")
+@Table(name = "project_members", indexes = {
+        @Index(name = "idx_project_members_project", columnList = "project_id")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -50,7 +52,3 @@ public class ProjectMember {
         private UUID projectId;
     }
 }
-
-
-
-

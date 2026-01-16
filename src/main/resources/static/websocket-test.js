@@ -11,18 +11,18 @@ function isValidUUID(str) {
 function validateInput(inputId, shouldBeUUID = true) {
     const input = document.getElementById(inputId);
     const value = input.value.trim();
-    
+
     if (!value) {
         input.classList.add('error');
         return null;
     }
-    
+
     if (shouldBeUUID && !isValidUUID(value)) {
         input.classList.add('error');
         addMessage('Invalid UUID format: ' + value, 'error');
         return null;
     }
-    
+
     input.classList.remove('error');
     return value;
 }
@@ -41,13 +41,15 @@ function connect() {
     stompClient.debug = null;
 
     stompClient.connect({}, function (frame) {
-        document.getElementById('connectionStatus').className = 'status connected';
-        document.getElementById('connectionStatus').textContent = 'Connected';
+        const status = document.getElementById('connectionStatus');
+        status.className = 'status-bar connected';
+        status.innerHTML = '<span class="status-dot"></span><span>Connected</span>';
         updateButtons(true);
         addMessage('Connected to WebSocket server', 'system');
     }, function (error) {
-        document.getElementById('connectionStatus').className = 'status disconnected';
-        document.getElementById('connectionStatus').textContent = 'Connection failed';
+        const status = document.getElementById('connectionStatus');
+        status.className = 'status-bar';
+        status.innerHTML = '<span class="status-dot"></span><span>Connection failed</span>';
         updateButtons(false);
         addMessage('Connection error: ' + error, 'error');
     });
@@ -60,10 +62,12 @@ function disconnect() {
     }
     channelSubscriptions = {};
     notificationSubscription = null;
-    document.getElementById('connectionStatus').className = 'status disconnected';
-    document.getElementById('connectionStatus').textContent = 'Disconnected';
-    document.getElementById('channelSubsList').innerHTML = '<span class="empty-state">None</span>';
+    const status = document.getElementById('connectionStatus');
+    status.className = 'status-bar';
+    status.innerHTML = '<span class="status-dot"></span><span>Disconnected</span>';
+    document.getElementById('channelSubsList').innerHTML = '<span class="empty">None</span>';
     document.getElementById('notifyStatusText').textContent = 'Not subscribed';
+    document.getElementById('notifyStatusText').className = 'empty';
     document.getElementById('notifySubBtn').disabled = true;
     updateButtons(false);
     addMessage('Disconnected', 'system');
@@ -102,14 +106,14 @@ function unsubscribeChannel(channelId) {
 function updateChannelSubsList() {
     const list = document.getElementById('channelSubsList');
     const channels = Object.keys(channelSubscriptions);
-    
+
     if (channels.length === 0) {
-        list.innerHTML = '<span class="empty-state">None</span>';
+        list.innerHTML = '<span class="empty">None</span>';
         return;
     }
 
     list.innerHTML = channels.map(id => `
-        <div class="subscription-badge">
+        <div class="sub-badge">
             <span title="${id}">${id.substring(0, 8)}...</span>
             <button class="btn-danger" onclick="unsubscribeChannel('${id}')">x</button>
         </div>
@@ -179,7 +183,7 @@ function showNotification(notification) {
 
 function addMessage(text, type = '') {
     const container = document.getElementById('messages');
-    
+
     if (container.querySelector('.empty-state')) {
         container.innerHTML = '';
     }
@@ -201,11 +205,11 @@ function escapeHtml(text) {
 }
 
 function clearMessages() {
-    document.getElementById('messages').innerHTML = '<div class="empty-state">Cleared</div>';
+    document.getElementById('messages').innerHTML = '<div class="empty">Cleared</div>';
 }
 
 document.querySelectorAll('input').forEach(input => {
-    input.addEventListener('input', function() {
+    input.addEventListener('input', function () {
         this.classList.remove('error');
     });
 });

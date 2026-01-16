@@ -169,7 +169,3 @@ public class AttachmentServiceImpl implements AttachmentService {
         throw new ForbiddenException("You do not have permission to delete this attachment.", ErrorCode.FORBIDDEN);
     }
 }
-
-
-
-

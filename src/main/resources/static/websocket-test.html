@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trelix WebSocket Test</title>
     <link rel="stylesheet" href="websocket-test.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
@@ -10,71 +12,72 @@
 
 <body>
     <div class="container">
-        <h1>Trelix WebSocket Test</h1>
+        <h1>WebSocket Test</h1>
+        <p class="subtitle">Real-time messaging test interface for Trelix</p>
 
-        <div id="connectionStatus" class="status disconnected">Disconnected</div>
-
-        <div class="info-box">
-            <strong>Test User:</strong> <code id="testUserId">78423349-2ba5-4f02-b7f1-386861771e0f</code>
-            <br><small>Use this ID for testing, or enter a valid user ID from your database</small>
+        <div id="connectionStatus" class="status-bar">
+            <span class="status-dot"></span>
+            <span>Disconnected</span>
         </div>
 
         <div class="card">
-            <h3>1. Connection</h3>
-            <div class="input-group">
-                <button id="connectBtn" class="btn-primary" onclick="connect()">Connect</button>
-                <button id="disconnectBtn" class="btn-danger" onclick="disconnect()" disabled>Disconnect</button>
+            <h3>Connection</h3>
+            <div class="input-row">
+                <button id="connectBtn" class="primary" onclick="connect()">Connect</button>
+                <button id="disconnectBtn" class="danger" onclick="disconnect()" disabled>Disconnect</button>
+            </div>
+            <div style="margin-top: 12px;">
+                <span class="tag">User: 78423349-2ba5...</span>
             </div>
         </div>
 
-        <div class="grid-2">
+        <div class="grid">
             <div class="card">
-                <h3>2. Channel Subscription</h3>
-                <div class="input-group">
-                    <input type="text" id="channelId" placeholder="Enter Channel UUID">
-                    <button id="subscribeBtn" class="btn-primary" onclick="subscribeChannel()"
-                        disabled>Subscribe</button>
+                <h3>Channel</h3>
+                <div class="input-row">
+                    <input type="text" id="channelId" placeholder="Channel UUID">
+                    <button id="subscribeBtn" onclick="subscribeChannel()" disabled>Subscribe</button>
                 </div>
-                <div id="channelSubscriptions">
-                    <small>Active subscriptions:</small>
+                <div class="subscriptions">
+                    <div class="subscriptions-label">Active:</div>
                     <div class="subscriptions-list" id="channelSubsList">
-                        <span class="empty-state">None</span>
+                        <span class="empty">None</span>
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <h3>3. Notifications</h3>
-                <div class="input-group">
-                    <button id="notifySubBtn" class="btn-success" onclick="subscribeNotifications()" disabled>Subscribe
-                        to Notifications</button>
+                <h3>Notifications</h3>
+                <div class="input-row">
+                    <button id="notifySubBtn" class="success" onclick="subscribeNotifications()" disabled
+                        style="width: 100%;">Subscribe to Notifications</button>
                 </div>
-                <div id="notificationStatus">
-                    <small>Status: <span id="notifyStatusText">Not subscribed</span></small>
+                <div class="subscriptions">
+                    <div class="subscriptions-label">Status:</div>
+                    <span id="notifyStatusText" class="empty">Not subscribed</span>
                 </div>
             </div>
         </div>
 
         <div class="card">
-            <h3>4. Send Message</h3>
-            <div class="input-group">
-                <input type="text" id="senderId" value="78423349-2ba5-4f02-b7f1-386861771e0f"
-                    placeholder="Your User ID">
-            </div>
-            <div class="input-group">
+            <h3>Send Message</h3>
+            <input type="hidden" id="senderId" value="78423349-2ba5-4f02-b7f1-386861771e0f">
+            <div class="input-row">
                 <input type="text" id="targetChannelId" placeholder="Target Channel UUID">
+            </div>
+            <div class="input-row">
                 <input type="text" id="messageContent" placeholder="Type a message..." onkeypress="handleEnter(event)">
-                <button id="sendBtn" class="btn-primary" onclick="sendMessage()" disabled>Send</button>
+                <button id="sendBtn" class="primary" onclick="sendMessage()" disabled>Send</button>
             </div>
         </div>
 
         <div class="card">
-            <div class="header-actions">
+            <div class="messages-header">
                 <h3>Messages</h3>
                 <button onclick="clearMessages()">Clear</button>
             </div>
             <div id="messages">
-                <div class="empty-state">No messages yet</div>
+                <div class="empty">No messages yet</div>
             </div>
         </div>
     </div>

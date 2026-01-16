@@ -8,7 +8,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "messages")
+@Table(name = "messages", indexes = {
+        @Index(name = "idx_messages_channel", columnList = "channel_id")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -41,7 +43,3 @@ public class Message {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 }
-
-
-
-
