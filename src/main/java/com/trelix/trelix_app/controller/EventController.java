@@ -1,9 +1,9 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.CreateEventRequest;
-import com.trelix.trelix_app.dto.EventResponse;
-import com.trelix.trelix_app.dto.PagedEventResponse;
-import com.trelix.trelix_app.dto.UpdateEventRequest;
+import com.trelix.trelix_app.dto.request.CreateEventRequest;
+import com.trelix.trelix_app.dto.response.EventResponse;
+import com.trelix.trelix_app.dto.response.PagedEventResponse;
+import com.trelix.trelix_app.dto.request.UpdateEventRequest;
 import com.trelix.trelix_app.enums.EventEntityType;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.EventService;
@@ -88,3 +88,7 @@ public class EventController {
         return ResponseEntity.noContent().build();
     }
 }
+
+
+
+

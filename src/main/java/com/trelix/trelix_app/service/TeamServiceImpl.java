@@ -1,6 +1,8 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.*;
+import com.trelix.trelix_app.dto.request.*;
+import com.trelix.trelix_app.dto.response.*;
+import com.trelix.trelix_app.dto.common.*;
 import com.trelix.trelix_app.entity.Team;
 import com.trelix.trelix_app.entity.TeamUser;
 import com.trelix.trelix_app.entity.User;
@@ -17,6 +19,8 @@ import com.trelix.trelix_app.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,15 +86,16 @@ public class TeamServiceImpl implements TeamService {
         }
 
         @Override
+        @Cacheable(value = "teams", key = "#teamId")
         @Transactional(readOnly = true)
-        public TeamDetailResponse getTeamById(UUID teamId, UUID requesterId) {
-                authorizationService.verifyTeamMembership(teamId, requesterId);
+        public TeamDetailResponse getTeamDetails(UUID teamId) {
                 Team team = teamRepository.findDetailsById(teamId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
                 return TeamDetailResponse.from(team);
         }
 
         @Override
+        @CacheEvict(value = "teams", key = "#teamId")
         @Transactional
         public TeamResponse updateTeam(UUID teamId, UpdateTeamRequest request, UUID requesterId) {
                 authorizationService.verifyTeamAdmin(teamId, requesterId);
@@ -105,6 +110,7 @@ public class TeamServiceImpl implements TeamService {
         }
 
         @Override
+        @CacheEvict(value = "teams", key = "#teamId")
         @Transactional
         public void deleteTeam(UUID teamId, UUID requesterId) {
                 authorizationService.verifyTeamOwner(teamId, requesterId);
@@ -128,6 +134,7 @@ public class TeamServiceImpl implements TeamService {
         }
 
         @Override
+        @CacheEvict(value = "teams", key = "#teamId")
         @Transactional
         public TeamMemberResponse addMember(UUID teamId, AddTeamMemberRequest request, UUID requesterId) {
                 authorizationService.verifyTeamAdmin(teamId, requesterId);
@@ -163,6 +170,7 @@ public class TeamServiceImpl implements TeamService {
         }
 
         @Override
+        @CacheEvict(value = "teams", key = "#teamId")
         @Transactional
         public TeamMemberResponse updateMemberRole(UUID teamId, UUID userId, TeamRole newRole, UUID requesterId) {
                 authorizationService.verifyTeamOwner(teamId, requesterId);
@@ -192,6 +200,7 @@ public class TeamServiceImpl implements TeamService {
         }
 
         @Override
+        @CacheEvict(value = "teams", key = "#teamId")
         @Transactional
         public void removeMember(UUID teamId, UUID userId, UUID requesterId) {
                 authorizationService.verifyTeamAdmin(teamId, requesterId);
@@ -216,6 +225,7 @@ public class TeamServiceImpl implements TeamService {
         }
 
         @Override
+        @CacheEvict(value = "teams", key = "#teamId")
         @Transactional
         public List<TeamMemberResponse> transferOwnership(UUID teamId, UUID newOwnerId, UUID requesterId) {
                 Team team = teamRepository.findById(teamId)
@@ -256,3 +266,7 @@ public class TeamServiceImpl implements TeamService {
 
 // why a different endpoint for transferring ownership -> ? Safety, Clarity,
 // Different operation, future maintenance
+
+
+
+

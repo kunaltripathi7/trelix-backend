@@ -25,3 +25,7 @@ public interface TaskMemberRepository extends JpaRepository<TaskMember, TaskMemb
     @Query("SELECT tm.role FROM TaskMember tm WHERE tm.id.taskId = :taskId AND tm.id.userId = :userId")
     Optional<TaskRole> findRoleByTaskIdAndUserId(@Param("taskId") UUID taskId, @Param("userId") UUID userId);
 }
+
+
+
+

@@ -3,78 +3,9 @@
 
 <head>
     <title>Trelix WebSocket Test</title>
+    <link rel="stylesheet" href="websocket-test.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-    <style>
-        body {
-            font-family: Arial;
-            padding: 20px;
-            background: #1a1a2e;
-            color: #eee;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .status {
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-
-        .connected {
-            background: #16a085;
-        }
-
-        .disconnected {
-            background: #c0392b;
-        }
-
-        .message {
-            background: #2d3436;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 5px;
-        }
-
-        input,
-        button {
-            padding: 10px;
-            margin: 5px;
-        }
-
-        input {
-            width: 300px;
-            background: #2d3436;
-            border: 1px solid #555;
-            color: #fff;
-        }
-
-        button {
-            background: #3498db;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #2980b9;
-        }
-
-        #messages {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .info {
-            background: #2d3436;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-    </style>
 </head>
 
 <body>
@@ -83,109 +14,72 @@
 
         <div id="connectionStatus" class="status disconnected">Disconnected</div>
 
-        <div class="info">
-            <strong>Default Test User:</strong> 78423349-2ba5-4f02-b7f1-386861771e0f (Test User)
+        <div class="info-box">
+            <strong>Test User:</strong> <code id="testUserId">78423349-2ba5-4f02-b7f1-386861771e0f</code>
+            <br><small>Use this ID for testing, or enter a valid user ID from your database</small>
         </div>
 
-        <div>
-            <h3>1. Connect</h3>
-            <button onclick="connect()">Connect to WebSocket</button>
-            <button onclick="disconnect()">Disconnect</button>
+        <div class="card">
+            <h3>1. Connection</h3>
+            <div class="input-group">
+                <button id="connectBtn" class="btn-primary" onclick="connect()">Connect</button>
+                <button id="disconnectBtn" class="btn-danger" onclick="disconnect()" disabled>Disconnect</button>
+            </div>
         </div>
 
-        <div>
-            <h3>2. Subscribe to Channel</h3>
-            <input type="text" id="channelId" placeholder="Enter Channel ID (UUID)">
-            <button onclick="subscribeChannel()">Subscribe</button>
+        <div class="grid-2">
+            <div class="card">
+                <h3>2. Channel Subscription</h3>
+                <div class="input-group">
+                    <input type="text" id="channelId" placeholder="Enter Channel UUID">
+                    <button id="subscribeBtn" class="btn-primary" onclick="subscribeChannel()"
+                        disabled>Subscribe</button>
+                </div>
+                <div id="channelSubscriptions">
+                    <small>Active subscriptions:</small>
+                    <div class="subscriptions-list" id="channelSubsList">
+                        <span class="empty-state">None</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>3. Notifications</h3>
+                <div class="input-group">
+                    <button id="notifySubBtn" class="btn-success" onclick="subscribeNotifications()" disabled>Subscribe
+                        to Notifications</button>
+                </div>
+                <div id="notificationStatus">
+                    <small>Status: <span id="notifyStatusText">Not subscribed</span></small>
+                </div>
+            </div>
         </div>
 
-        <div>
-            <h3>3. Send Message</h3>
-            <input type="text" id="senderId" value="78423349-2ba5-4f02-b7f1-386861771e0f" placeholder="Your User ID">
-            <br>
-            <input type="text" id="messageContent" placeholder="Type a message">
-            <button onclick="sendMessage()">Send</button>
+        <div class="card">
+            <h3>4. Send Message</h3>
+            <div class="input-group">
+                <input type="text" id="senderId" value="78423349-2ba5-4f02-b7f1-386861771e0f"
+                    placeholder="Your User ID">
+            </div>
+            <div class="input-group">
+                <input type="text" id="targetChannelId" placeholder="Target Channel UUID">
+                <input type="text" id="messageContent" placeholder="Type a message..." onkeypress="handleEnter(event)">
+                <button id="sendBtn" class="btn-primary" onclick="sendMessage()" disabled>Send</button>
+            </div>
         </div>
 
-        <div>
-            <h3>Messages Received:</h3>
-            <div id="messages"></div>
+        <div class="card">
+            <div class="header-actions">
+                <h3>Messages</h3>
+                <button onclick="clearMessages()">Clear</button>
+            </div>
+            <div id="messages">
+                <div class="empty-state">No messages yet</div>
+            </div>
         </div>
     </div>
 
-    <script>
-        let stompClient = null;
-
-        function connect() {
-            const socket = new SockJS('http://localhost:8080/api/ws');
-            stompClient = Stomp.over(socket);
-
-            stompClient.connect({}, function (frame) {
-                document.getElementById('connectionStatus').className = 'status connected';
-                document.getElementById('connectionStatus').textContent = 'Connected!';
-                addMessage('Connected to WebSocket');
-                console.log('Connected: ' + frame);
-            }, function (error) {
-                document.getElementById('connectionStatus').className = 'status disconnected';
-                document.getElementById('connectionStatus').textContent = 'Error: ' + error;
-                console.error('Error: ' + error);
-            });
-        }
-
-        function disconnect() {
-            if (stompClient !== null) {
-                stompClient.disconnect();
-            }
-            document.getElementById('connectionStatus').className = 'status disconnected';
-            document.getElementById('connectionStatus').textContent = 'Disconnected';
-            addMessage('Disconnected');
-        }
-
-        function subscribeChannel() {
-            const channelId = document.getElementById('channelId').value;
-            if (!channelId) {
-                alert('Enter a channel ID');
-                return;
-            }
-
-            stompClient.subscribe('/topic/channel.' + channelId, function (message) {
-                showMessage(JSON.parse(message.body));
-            });
-
-            addMessage('Subscribed to channel: ' + channelId);
-        }
-
-        function sendMessage() {
-            const channelId = document.getElementById('channelId').value;
-            const content = document.getElementById('messageContent').value;
-            const senderId = document.getElementById('senderId').value;
-
-            if (!channelId || !content || !senderId) {
-                alert('Fill in all fields');
-                return;
-            }
-
-            stompClient.send('/app/chat.' + channelId, {}, JSON.stringify({
-                channelId: channelId,
-                content: content,
-                senderId: senderId
-            }));
-
-            addMessage(' Sent: ' + content);
-            document.getElementById('messageContent').value = '';
-        }
-
-        function showMessage(msg) {
-            addMessage((msg.senderName || 'User') + ': ' + msg.content);
-        }
-
-        function addMessage(text) {
-            const div = document.createElement('div');
-            div.className = 'message';
-            div.textContent = new Date().toLocaleTimeString() + ' - ' + text;
-            document.getElementById('messages').prepend(div);
-        }
-    </script>
+    <script src="websocket-test.js"></script>
 </body>
 
 </html>

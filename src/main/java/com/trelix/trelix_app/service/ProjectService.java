@@ -1,6 +1,8 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.*;
+import com.trelix.trelix_app.dto.request.*;
+import com.trelix.trelix_app.dto.response.*;
+import com.trelix.trelix_app.dto.common.*;
 import com.trelix.trelix_app.enums.ProjectRole;
 
 import java.util.List;
@@ -11,7 +13,7 @@ public interface ProjectService {
 
     List<ProjectResponse> getProjectsByTeam(UUID teamId, UUID requesterId);
 
-    ProjectDetailResponse getProjectById(UUID projectId, UUID requesterId);
+    ProjectDetailResponse getProjectById(UUID projectId);
 
     ProjectResponse updateProject(UUID projectId, UpdateProjectRequest request, UUID requesterId);
 
@@ -25,3 +27,7 @@ public interface ProjectService {
 
     void removeMember(UUID projectId, UUID userId, UUID requesterId);
 }
+
+
+
+

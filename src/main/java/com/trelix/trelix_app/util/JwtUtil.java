@@ -26,17 +26,8 @@ public class JwtUtil {
     @Value("${jwt.access-token-expiration}")
     private long accessTokenExpiration;
 
-    @Value("${jwt.refresh-token-expiration}")
-    private long refreshTokenExpiration;
-
-    private static final String TOKEN_TYPE = "Bearer";
-
     public String generateAccessToken(User user) {
         return generateToken(user, accessTokenExpiration);
-    }
-
-    public String generateRefreshToken(User user) {
-        return generateToken(user, refreshTokenExpiration);
     }
 
     private String generateToken(User user, long expiration) {

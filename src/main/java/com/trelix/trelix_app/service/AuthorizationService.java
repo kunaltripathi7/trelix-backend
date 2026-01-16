@@ -1,16 +1,12 @@
 package com.trelix.trelix_app.service;
 
 import com.trelix.trelix_app.entity.*;
-import com.trelix.trelix_app.enums.ProjectRole;
-import com.trelix.trelix_app.enums.TeamRole;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -106,3 +102,7 @@ public class AuthorizationService {
         // ChannelRepository
     }
 }
+
+
+
+

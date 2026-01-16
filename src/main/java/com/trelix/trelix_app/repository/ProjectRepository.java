@@ -35,3 +35,7 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
            "WHERE tu.user.id = :userId")
     List<UUID> findAccessibleByUserId(@Param("userId") UUID userId);
 }
+
+
+
+

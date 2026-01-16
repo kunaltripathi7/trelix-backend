@@ -36,3 +36,7 @@ public class DirectMessage {
     @OneToMany(mappedBy = "directMessage", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Message> messages = new ArrayList<>();
 }
+
+
+
+

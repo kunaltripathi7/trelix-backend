@@ -1,7 +1,10 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.*;
+import com.trelix.trelix_app.dto.request.*;
+import com.trelix.trelix_app.dto.response.*;
+import com.trelix.trelix_app.dto.common.*;
 import com.trelix.trelix_app.security.CustomUserDetails;
+import com.trelix.trelix_app.service.AuthorizationService;
 import com.trelix.trelix_app.service.TeamService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,20 +24,19 @@ import java.util.UUID;
 public class TeamController {
 
     private final TeamService teamService;
+    private final AuthorizationService authorizationService;
 
     @PostMapping
     public ResponseEntity<TeamResponse> createTeam(
             @Valid @RequestBody CreateTeamRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser
-    ) {
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         TeamResponse newTeam = teamService.createTeam(request, currentUser.getId());
         return new ResponseEntity<>(newTeam, HttpStatus.CREATED);
     }
 
     @GetMapping
     public ResponseEntity<List<TeamResponse>> getTeamsForUser(
-            @AuthenticationPrincipal CustomUserDetails currentUser
-    ) {
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         List<TeamResponse> teams = teamService.getTeamsForUser(currentUser.getId());
         return ResponseEntity.ok(teams);
     }
@@ -42,9 +44,9 @@ public class TeamController {
     @GetMapping("/{teamId}")
     public ResponseEntity<TeamDetailResponse> getTeamById(
             @PathVariable UUID teamId,
-            @AuthenticationPrincipal CustomUserDetails currentUser
-    ) {
-        TeamDetailResponse team = teamService.getTeamById(teamId, currentUser.getId());
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        authorizationService.verifyTeamMembership(teamId, currentUser.getId());
+        TeamDetailResponse team = teamService.getTeamDetails(teamId);
         return ResponseEntity.ok(team);
     }
 
@@ -52,8 +54,7 @@ public class TeamController {
     public ResponseEntity<TeamResponse> updateTeam(
             @PathVariable UUID teamId,
             @Valid @RequestBody UpdateTeamRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser
-    ) {
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         TeamResponse updatedTeam = teamService.updateTeam(teamId, request, currentUser.getId());
         return ResponseEntity.ok(updatedTeam);
     }
@@ -61,8 +62,7 @@ public class TeamController {
     @DeleteMapping("/{teamId}")
     public ResponseEntity<Void> deleteTeam(
             @PathVariable UUID teamId,
-            @AuthenticationPrincipal CustomUserDetails currentUser
-    ) {
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         teamService.deleteTeam(teamId, currentUser.getId());
         return ResponseEntity.noContent().build();
     }
@@ -70,8 +70,7 @@ public class TeamController {
     @GetMapping("/{teamId}/members")
     public ResponseEntity<List<TeamMemberResponse>> getTeamMembers(
             @PathVariable UUID teamId,
-            @AuthenticationPrincipal CustomUserDetails currentUser
-    ) {
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         List<TeamMemberResponse> members = teamService.getTeamMembers(teamId, currentUser.getId());
         return ResponseEntity.ok(members);
     }
@@ -80,8 +79,7 @@ public class TeamController {
     public ResponseEntity<TeamMemberResponse> addMember(
             @PathVariable UUID teamId,
             @Valid @RequestBody AddTeamMemberRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser
-    ) {
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         TeamMemberResponse newMember = teamService.addMember(teamId, request, currentUser.getId());
         return new ResponseEntity<>(newMember, HttpStatus.CREATED);
     }
@@ -91,9 +89,9 @@ public class TeamController {
             @PathVariable UUID teamId,
             @PathVariable UUID userId,
             @Valid @RequestBody UpdateTeamMemberRoleRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser
-    ) {
-        TeamMemberResponse updatedMember = teamService.updateMemberRole(teamId, userId, request.role(), currentUser.getId());
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        TeamMemberResponse updatedMember = teamService.updateMemberRole(teamId, userId, request.role(),
+                currentUser.getId());
         return ResponseEntity.ok(updatedMember);
     }
 
@@ -101,8 +99,7 @@ public class TeamController {
     public ResponseEntity<Void> removeMember(
             @PathVariable UUID teamId,
             @PathVariable UUID userId,
-            @AuthenticationPrincipal CustomUserDetails currentUser
-    ) {
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         teamService.removeMember(teamId, userId, currentUser.getId());
         return ResponseEntity.noContent().build();
     }
@@ -111,9 +108,13 @@ public class TeamController {
     public ResponseEntity<List<TeamMemberResponse>> transferOwnership(
             @PathVariable UUID teamId,
             @Valid @RequestBody TransferOwnershipRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser
-    ) {
-        List<TeamMemberResponse> updatedTeamMembers = teamService.transferOwnership(teamId, request.newOwnerId(), currentUser.getId());
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        List<TeamMemberResponse> updatedTeamMembers = teamService.transferOwnership(teamId, request.newOwnerId(),
+                currentUser.getId());
         return ResponseEntity.ok(updatedTeamMembers);
     }
 }
+
+
+
+

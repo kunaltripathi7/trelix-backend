@@ -1,6 +1,8 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.*;
+import com.trelix.trelix_app.dto.request.*;
+import com.trelix.trelix_app.dto.response.*;
+import com.trelix.trelix_app.dto.common.*;
 import com.trelix.trelix_app.entity.Project;
 import com.trelix.trelix_app.entity.Task;
 import com.trelix.trelix_app.entity.Team;
@@ -260,3 +262,7 @@ public class TaskServiceImpl implements TaskService {
         taskMemberRepository.delete(taskMember);
     }
 }
+
+
+
+

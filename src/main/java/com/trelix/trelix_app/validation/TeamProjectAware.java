@@ -6,3 +6,6 @@ public interface TeamProjectAware {
     UUID teamId();
     UUID projectId();
 }
+
+
+

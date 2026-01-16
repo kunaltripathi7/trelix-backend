@@ -1,12 +1,12 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.DirectMessageConversationResponse;
-import com.trelix.trelix_app.dto.DirectMessageDetailResponse;
-import com.trelix.trelix_app.dto.DirectMessageMessageResponse;
-import com.trelix.trelix_app.dto.DirectMessageResponse;
-import com.trelix.trelix_app.dto.EditDirectMessageRequest;
-import com.trelix.trelix_app.dto.PagedDirectMessageResponse;
-import com.trelix.trelix_app.dto.SendDirectMessageRequest;
+import com.trelix.trelix_app.dto.response.DirectMessageConversationResponse;
+import com.trelix.trelix_app.dto.response.DirectMessageDetailResponse;
+import com.trelix.trelix_app.dto.response.DirectMessageMessageResponse;
+import com.trelix.trelix_app.dto.response.DirectMessageResponse;
+import com.trelix.trelix_app.dto.request.EditDirectMessageRequest;
+import com.trelix.trelix_app.dto.response.PagedDirectMessageResponse;
+import com.trelix.trelix_app.dto.request.SendDirectMessageRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -26,3 +26,7 @@ public interface DirectMessageService {
 
     void deleteMessage(UUID dmId, UUID messageId, UUID requesterId);
 }
+
+
+
+

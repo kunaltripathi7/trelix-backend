@@ -13,3 +13,7 @@ public class UnauthorizedException extends RuntimeException {
         this.errorCode = errorCode;
     }
 }
+
+
+
+

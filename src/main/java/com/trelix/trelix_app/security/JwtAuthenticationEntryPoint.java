@@ -1,7 +1,7 @@
 package com.trelix.trelix_app.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.trelix.trelix_app.dto.ErrorResponse;
+import com.trelix.trelix_app.dto.response.ErrorResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,3 +32,6 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         new ObjectMapper().writeValue(response.getOutputStream(), errorResponse);
     }
 }
+
+
+

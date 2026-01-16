@@ -49,3 +49,7 @@ public class Event {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 }
+
+
+
+

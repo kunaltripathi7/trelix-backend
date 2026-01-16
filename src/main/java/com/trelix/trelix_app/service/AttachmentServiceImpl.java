@@ -1,6 +1,6 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.AttachmentResponse;
+import com.trelix.trelix_app.dto.response.AttachmentResponse;
 import com.trelix.trelix_app.entity.Attachment;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.EntityType;
@@ -169,3 +169,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         throw new ForbiddenException("You do not have permission to delete this attachment.", ErrorCode.FORBIDDEN);
     }
 }
+
+
+
+

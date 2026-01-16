@@ -1,6 +1,8 @@
 package com.trelix.trelix_app.config;
 
 import com.trelix.trelix_app.filter.JwtAuthenticationFilter;
+import com.trelix.trelix_app.filter.RateLimitFilter;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
@@ -33,6 +35,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
     private final AuthenticationEntryPoint jwtAuthEntryPoint;
+    private final RateLimitFilter rateLimitFilter;
 
     private static final String[] SWAGGER_WHITELIST = {
             "/v3/api-docs/**",
@@ -56,7 +59,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

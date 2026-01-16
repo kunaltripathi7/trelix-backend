@@ -1,7 +1,7 @@
 package com.trelix.trelix_app.validation;
 
-import com.trelix.trelix_app.dto.CreateEventRequest;
-import com.trelix.trelix_app.dto.UpdateEventRequest;
+import com.trelix.trelix_app.dto.request.CreateEventRequest;
+import com.trelix.trelix_app.dto.request.UpdateEventRequest;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
@@ -28,3 +28,7 @@ public class EndTimeAfterStartTimeValidator implements ConstraintValidator<EndTi
         return false; // Should not happen if annotation is used correctly
     }
 }
+
+
+
+

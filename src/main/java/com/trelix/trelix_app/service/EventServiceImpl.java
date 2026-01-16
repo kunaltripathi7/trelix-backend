@@ -1,9 +1,9 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.CreateEventRequest;
-import com.trelix.trelix_app.dto.EventResponse;
-import com.trelix.trelix_app.dto.PagedEventResponse;
-import com.trelix.trelix_app.dto.UpdateEventRequest;
+import com.trelix.trelix_app.dto.request.CreateEventRequest;
+import com.trelix.trelix_app.dto.response.EventResponse;
+import com.trelix.trelix_app.dto.response.PagedEventResponse;
+import com.trelix.trelix_app.dto.request.UpdateEventRequest;
 import com.trelix.trelix_app.entity.Event;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.EventEntityType;
@@ -34,9 +34,7 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
-    private final TeamService teamService;
-    private final ProjectService projectService;
-    private final TaskService taskService;
+    private final AuthorizationService authorizationService;
 
     @Override
     @Transactional
@@ -62,11 +60,13 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public PagedEventResponse getEvents(EventEntityType entityType, UUID entityId, LocalDate startDate, LocalDate endDate, int page, int size, UUID requesterId) {
+    public PagedEventResponse getEvents(EventEntityType entityType, UUID entityId, LocalDate startDate,
+            LocalDate endDate, int page, int size, UUID requesterId) {
         if (entityType != null && entityId != null) {
             verifyEntityAccess(entityType, entityId, requesterId);
         } else if (entityType != null || entityId != null) {
-            throw new BadRequestException("Both entityType and entityId must be provided if one is present.", ErrorCode.INVALID_REQUEST_PARAMETER);
+            throw new BadRequestException("Both entityType and entityId must be provided if one is present.",
+                    ErrorCode.INVALID_REQUEST_PARAMETER);
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("startTime").ascending());
@@ -74,7 +74,8 @@ public class EventServiceImpl implements EventService {
         LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
         LocalDateTime endDateTime = endDate != null ? endDate.atTime(LocalTime.MAX) : null;
 
-        Page<Event> eventPage = eventRepository.findByFilters(entityType, entityId, startDateTime, endDateTime, pageable);
+        Page<Event> eventPage = eventRepository.findByFilters(entityType, entityId, startDateTime, endDateTime,
+                pageable);
 
         List<EventResponse> eventResponses = eventPage.getContent().stream()
                 .map(event -> {
@@ -87,8 +88,7 @@ public class EventServiceImpl implements EventService {
                 eventResponses,
                 eventPage.getNumber(),
                 eventPage.getTotalPages(),
-                eventPage.getTotalElements()
-        );
+                eventPage.getTotalElements());
     }
 
     @Override
@@ -138,10 +138,11 @@ public class EventServiceImpl implements EventService {
     private void verifyEntityAccess(EventEntityType entityType, UUID entityId, UUID userId) {
         try {
             switch (entityType) {
-                case TEAM -> teamService.getTeamById(entityId, userId);
-                case PROJECT -> projectService.getProjectById(entityId, userId);
-                case TASK -> taskService.getTaskById(entityId, userId);
-                default -> throw new BadRequestException("Unsupported entity type for events: " + entityType, ErrorCode.INVALID_INPUT);
+                case TEAM -> authorizationService.verifyTeamMembership(entityId, userId);
+                case PROJECT -> authorizationService.verifyProjectMembership(entityId, userId);
+                case TASK -> authorizationService.verifyTaskReadAccess(entityId, userId);
+                default -> throw new BadRequestException("Unsupported entity type for events: " + entityType,
+                        ErrorCode.INVALID_INPUT);
             }
         } catch (ResourceNotFoundException e) {
             throw new ForbiddenException("You do not have access to this entity.", ErrorCode.FORBIDDEN);
@@ -169,11 +170,14 @@ public class EventServiceImpl implements EventService {
                 event.getEndTime(),
                 event.getCreatedBy(),
                 creatorName,
-                event.getCreatedAt()
-        );
+                event.getCreatedAt());
     }
 
     private String getEntityName(EventEntityType entityType, UUID entityId) {
         return entityType.name() + " " + entityId.toString().substring(0, 8);
     }
 }
+
+
+
+

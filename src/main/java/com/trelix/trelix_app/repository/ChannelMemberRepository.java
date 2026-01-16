@@ -18,3 +18,7 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, Ch
     boolean existsByIdChannelIdAndIdUserId(UUID channelId, UUID userId);
 
 }
+
+
+
+

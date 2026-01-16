@@ -21,3 +21,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
            "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%'))")
     Page<User> searchByNameOrEmail(@Param("query") String query, Pageable pageable);
 }
+
+
+
+

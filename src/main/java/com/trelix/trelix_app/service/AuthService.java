@@ -1,9 +1,9 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.AuthResponse;
-import com.trelix.trelix_app.dto.LoginRequest;
-import com.trelix.trelix_app.dto.RegisterRequest;
-import com.trelix.trelix_app.dto.RegisterResponse;
+import com.trelix.trelix_app.dto.response.AuthResponse;
+import com.trelix.trelix_app.dto.request.LoginRequest;
+import com.trelix.trelix_app.dto.request.RegisterRequest;
+import com.trelix.trelix_app.dto.response.RegisterResponse;
 
 public interface AuthService {
     RegisterResponse register(RegisterRequest request);
@@ -11,3 +11,7 @@ public interface AuthService {
     AuthResponse refreshToken(String refreshToken);
     void logout(String token);
 }
+
+
+
+

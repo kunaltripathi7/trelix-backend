@@ -1,7 +1,7 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.RoleAssignmentRequest;
-import com.trelix.trelix_app.dto.UserResponse;
+import com.trelix.trelix_app.dto.request.RoleAssignmentRequest;
+import com.trelix.trelix_app.dto.response.UserResponse;
 import com.trelix.trelix_app.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,3 +26,7 @@ public class AdminController {
         return ResponseEntity.ok(updatedUser);
     }
 }
+
+
+
+

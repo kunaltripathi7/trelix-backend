@@ -31,3 +31,7 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
            "LEFT JOIN FETCH t.channels WHERE t.id = :teamId")
     Optional<Team> findDetailsById(@Param("teamId") UUID teamId);
 }
+
+
+
+

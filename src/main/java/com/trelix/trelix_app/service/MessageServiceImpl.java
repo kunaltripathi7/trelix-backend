@@ -1,9 +1,9 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.EditMessageRequest;
-import com.trelix.trelix_app.dto.MessageResponse;
-import com.trelix.trelix_app.dto.PagedMessageResponse;
-import com.trelix.trelix_app.dto.SendMessageRequest;
+import com.trelix.trelix_app.dto.request.EditMessageRequest;
+import com.trelix.trelix_app.dto.response.MessageResponse;
+import com.trelix.trelix_app.dto.response.PagedMessageResponse;
+import com.trelix.trelix_app.dto.request.SendMessageRequest;
 import com.trelix.trelix_app.entity.Channel;
 import com.trelix.trelix_app.entity.Message;
 import com.trelix.trelix_app.entity.User;
@@ -127,3 +127,7 @@ public class MessageServiceImpl implements MessageService {
         messageRepository.delete(message);
     }
 }
+
+
+
+

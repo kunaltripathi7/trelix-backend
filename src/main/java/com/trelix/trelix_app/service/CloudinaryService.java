@@ -18,14 +18,14 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
 
+    @SuppressWarnings("unchecked")
     public String uploadFile(MultipartFile file, String folder) {
         try {
             Map<String, Object> uploadParams = Map.of(
                     "folder", folder,
-                    "resource_type", "auto"
-            );
+                    "resource_type", "auto");
 
-            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadParams);
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadParams);
             return (String) uploadResult.get("secure_url");
         } catch (IOException e) {
             throw new ServiceException("Failed to upload file to Cloudinary", ErrorCode.EXTERNAL_SYSTEM_FAILURE, e);
@@ -49,3 +49,7 @@ public class CloudinaryService {
         throw new IllegalArgumentException("Invalid Cloudinary URL format: " + url);
     }
 }
+
+
+
+

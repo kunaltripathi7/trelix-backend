@@ -1,9 +1,9 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.CreateNotificationRequest;
-import com.trelix.trelix_app.dto.NotificationResponse;
-import com.trelix.trelix_app.dto.PagedNotificationResponse;
-import com.trelix.trelix_app.dto.UnreadCountResponse;
+import com.trelix.trelix_app.dto.request.CreateNotificationRequest;
+import com.trelix.trelix_app.dto.response.NotificationResponse;
+import com.trelix.trelix_app.dto.response.PagedNotificationResponse;
+import com.trelix.trelix_app.dto.response.UnreadCountResponse;
 import com.trelix.trelix_app.enums.NotificationType;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.NotificationService;
@@ -101,3 +101,7 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 }
+
+
+
+

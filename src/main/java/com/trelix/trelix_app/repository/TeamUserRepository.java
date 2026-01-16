@@ -22,3 +22,7 @@ public interface TeamUserRepository extends JpaRepository<TeamUser, TeamUser.Tea
 
     long countById_TeamId(UUID teamId);
 }
+
+
+
+

@@ -1,6 +1,6 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.CommentDTO;
+import com.trelix.trelix_app.dto.common.CommentDTO;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.CommentService;
 import jakarta.validation.Valid;
@@ -50,3 +50,7 @@ public class CommentController {
         return ResponseEntity.noContent().build();
     }
 }
+
+
+
+

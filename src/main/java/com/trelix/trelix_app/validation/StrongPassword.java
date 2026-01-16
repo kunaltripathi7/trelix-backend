@@ -16,3 +16,7 @@ public @interface StrongPassword {
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }
+
+
+
+

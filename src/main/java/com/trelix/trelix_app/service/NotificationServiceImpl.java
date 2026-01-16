@@ -1,8 +1,8 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.CreateNotificationRequest;
-import com.trelix.trelix_app.dto.NotificationResponse;
-import com.trelix.trelix_app.dto.PagedNotificationResponse;
+import com.trelix.trelix_app.dto.request.CreateNotificationRequest;
+import com.trelix.trelix_app.dto.response.NotificationResponse;
+import com.trelix.trelix_app.dto.response.PagedNotificationResponse;
 import com.trelix.trelix_app.entity.Notification;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.ErrorCode;
@@ -187,3 +187,7 @@ public class NotificationServiceImpl implements NotificationService {
         };
     }
 }
+
+
+
+

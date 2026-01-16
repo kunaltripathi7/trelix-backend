@@ -24,3 +24,7 @@ public interface ChannelRepository extends JpaRepository<Channel, UUID> {
     boolean existsByNameAndTeamId(String name, UUID teamId);
     boolean existsByNameAndProjectId(String name, UUID projectId);
 }
+
+
+
+

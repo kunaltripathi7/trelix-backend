@@ -1,14 +1,14 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.AssignTaskMemberRequest;
-import com.trelix.trelix_app.dto.CreateTaskRequest;
-import com.trelix.trelix_app.dto.PagedTaskResponse;
-import com.trelix.trelix_app.dto.TaskDetailResponse;
-import com.trelix.trelix_app.dto.TaskMemberResponse;
-import com.trelix.trelix_app.dto.TaskResponse;
-import com.trelix.trelix_app.dto.UpdateTaskMemberRoleRequest;
-import com.trelix.trelix_app.dto.UpdateTaskRequest;
-import com.trelix.trelix_app.dto.UpdateTaskStatusRequest;
+import com.trelix.trelix_app.dto.request.AssignTaskMemberRequest;
+import com.trelix.trelix_app.dto.request.CreateTaskRequest;
+import com.trelix.trelix_app.dto.response.PagedTaskResponse;
+import com.trelix.trelix_app.dto.response.TaskDetailResponse;
+import com.trelix.trelix_app.dto.response.TaskMemberResponse;
+import com.trelix.trelix_app.dto.response.TaskResponse;
+import com.trelix.trelix_app.dto.request.UpdateTaskMemberRoleRequest;
+import com.trelix.trelix_app.dto.request.UpdateTaskRequest;
+import com.trelix.trelix_app.dto.request.UpdateTaskStatusRequest;
 import com.trelix.trelix_app.enums.TaskPriority;
 import com.trelix.trelix_app.enums.TaskStatus;
 import com.trelix.trelix_app.security.CustomUserDetails;
@@ -125,3 +125,7 @@ public class TaskController {
         return ResponseEntity.noContent().build();
     }
 }
+
+
+
+

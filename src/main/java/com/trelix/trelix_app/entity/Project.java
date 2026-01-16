@@ -55,3 +55,7 @@ public class Project {
     @OneToMany(mappedBy = "project")
     private List<Channel> channels = new ArrayList<>();
 }
+
+
+
+

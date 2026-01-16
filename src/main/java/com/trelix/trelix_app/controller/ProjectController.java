@@ -1,13 +1,14 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.AddProjectMemberRequest;
-import com.trelix.trelix_app.dto.CreateProjectRequest;
-import com.trelix.trelix_app.dto.ProjectDetailResponse;
-import com.trelix.trelix_app.dto.ProjectMemberResponse;
-import com.trelix.trelix_app.dto.ProjectResponse;
-import com.trelix.trelix_app.dto.UpdateProjectMemberRoleRequest;
-import com.trelix.trelix_app.dto.UpdateProjectRequest;
+import com.trelix.trelix_app.dto.request.AddProjectMemberRequest;
+import com.trelix.trelix_app.dto.request.CreateProjectRequest;
+import com.trelix.trelix_app.dto.response.ProjectDetailResponse;
+import com.trelix.trelix_app.dto.response.ProjectMemberResponse;
+import com.trelix.trelix_app.dto.response.ProjectResponse;
+import com.trelix.trelix_app.dto.request.UpdateProjectMemberRoleRequest;
+import com.trelix.trelix_app.dto.request.UpdateProjectRequest;
 import com.trelix.trelix_app.security.CustomUserDetails;
+import com.trelix.trelix_app.service.AuthorizationService;
 import com.trelix.trelix_app.service.ProjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +29,7 @@ import java.util.UUID;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final AuthorizationService authorizationService;
 
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(
@@ -51,7 +53,9 @@ public class ProjectController {
             @PathVariable @NotNull UUID projectId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        ProjectDetailResponse projectDetail = projectService.getProjectById(projectId, currentUser.getId());
+        UUID requesterId = currentUser.getId();
+        authorizationService.verifyProjectMembership(projectId, requesterId);
+        ProjectDetailResponse projectDetail = projectService.getProjectById(projectId);
         return ResponseEntity.ok(projectDetail);
     }
 

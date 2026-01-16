@@ -1,11 +1,11 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.AddChannelMemberRequest;
-import com.trelix.trelix_app.dto.ChannelDetailResponse;
-import com.trelix.trelix_app.dto.ChannelMemberResponse;
-import com.trelix.trelix_app.dto.ChannelResponse;
-import com.trelix.trelix_app.dto.CreateChannelRequest;
-import com.trelix.trelix_app.dto.UpdateChannelRequest;
+import com.trelix.trelix_app.dto.request.AddChannelMemberRequest;
+import com.trelix.trelix_app.dto.response.ChannelDetailResponse;
+import com.trelix.trelix_app.dto.response.ChannelMemberResponse;
+import com.trelix.trelix_app.dto.response.ChannelResponse;
+import com.trelix.trelix_app.dto.request.CreateChannelRequest;
+import com.trelix.trelix_app.dto.request.UpdateChannelRequest;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.ChannelService;
 import jakarta.validation.Valid;
@@ -97,3 +97,7 @@ public class ChannelController {
         return ResponseEntity.noContent().build();
     }
 }
+
+
+
+

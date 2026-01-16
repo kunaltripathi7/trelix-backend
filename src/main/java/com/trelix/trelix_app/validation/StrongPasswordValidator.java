@@ -16,3 +16,7 @@ public class StrongPasswordValidator implements ConstraintValidator<StrongPasswo
         return password.matches(PASSWORD_PATTERN);
     }
 }
+
+
+
+

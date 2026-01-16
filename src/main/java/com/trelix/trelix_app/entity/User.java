@@ -40,7 +40,6 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-
     @OneToMany(mappedBy = "user")
     private List<TeamUser> teamMemberships = new ArrayList<>();
 
@@ -87,7 +86,4 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private ROLE role;
-
-    @Column(length = 500)
-    private String refreshToken;
 }

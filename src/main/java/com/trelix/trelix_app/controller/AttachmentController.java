@@ -1,6 +1,6 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.AttachmentResponse;
+import com.trelix.trelix_app.dto.response.AttachmentResponse;
 import com.trelix.trelix_app.enums.EntityType;
 import com.trelix.trelix_app.service.AttachmentService;
 import lombok.RequiredArgsConstructor;
@@ -80,3 +80,7 @@ public class AttachmentController {
         return ResponseEntity.noContent().build();
     }
 }
+
+
+
+

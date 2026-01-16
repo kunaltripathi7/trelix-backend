@@ -1,6 +1,8 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.*;
+import com.trelix.trelix_app.dto.request.*;
+import com.trelix.trelix_app.dto.response.*;
+import com.trelix.trelix_app.dto.common.*;
 import com.trelix.trelix_app.entity.Team;
 import com.trelix.trelix_app.enums.TeamRole;
 
@@ -15,7 +17,7 @@ public interface TeamService {
 
     List<TeamResponse> getTeamsForUser(UUID userId);
 
-    TeamDetailResponse getTeamById(UUID teamId, UUID requesterId);
+    TeamDetailResponse getTeamDetails(UUID teamId);
 
     TeamResponse updateTeam(UUID teamId, UpdateTeamRequest request, UUID requesterId);
 
@@ -32,3 +34,7 @@ public interface TeamService {
     List<TeamMemberResponse> transferOwnership(UUID teamId, UUID newOwnerId, UUID requesterId);
 
 }
+
+
+
+

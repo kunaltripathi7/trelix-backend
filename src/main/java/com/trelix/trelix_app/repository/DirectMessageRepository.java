@@ -27,3 +27,7 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, UU
            "ORDER BY m.createdAt DESC NULLS LAST")
     List<Object[]> findByUserIdWithLastMessage(@Param("userId") UUID userId);
 }
+
+
+
+

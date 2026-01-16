@@ -20,3 +20,7 @@ public class UserServiceImpl implements UserService{
                 .orElseThrow(() -> new ResourceNotFoundException("User doesn't Exist for the given Id"));
     }
 }
+
+
+
+

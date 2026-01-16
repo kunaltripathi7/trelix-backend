@@ -1,6 +1,6 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.NotificationEvent;
+import com.trelix.trelix_app.dto.common.NotificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -19,3 +19,7 @@ public class KafkaProducerService {
         kafkaTemplate.send(TOPIC, event);
     }
 }
+
+
+
+

@@ -1,11 +1,11 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.GlobalSearchResponse;
-import com.trelix.trelix_app.dto.ProjectSearchResponse;
-import com.trelix.trelix_app.dto.SearchResultItem;
-import com.trelix.trelix_app.dto.TaskSearchResponse;
-import com.trelix.trelix_app.dto.TeamSearchResponse;
-import com.trelix.trelix_app.dto.UserSearchResponse;
+import com.trelix.trelix_app.dto.response.GlobalSearchResponse;
+import com.trelix.trelix_app.dto.response.ProjectSearchResponse;
+import com.trelix.trelix_app.dto.common.SearchResultItem;
+import com.trelix.trelix_app.dto.response.TaskSearchResponse;
+import com.trelix.trelix_app.dto.response.TeamSearchResponse;
+import com.trelix.trelix_app.dto.response.UserSearchResponse;
 import com.trelix.trelix_app.entity.Project;
 import com.trelix.trelix_app.entity.Task;
 import com.trelix.trelix_app.entity.Team;
@@ -193,3 +193,7 @@ public class SearchServiceImpl implements SearchService {
         return snippet;
     }
 }
+
+
+
+

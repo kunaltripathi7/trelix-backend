@@ -1,6 +1,6 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.CommentDTO;
+import com.trelix.trelix_app.dto.common.CommentDTO;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,3 +13,7 @@ public interface CommentService {
 
     void deleteComment(UUID commentId, UUID userId);
 }
+
+
+
+

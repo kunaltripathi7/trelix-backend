@@ -1,6 +1,6 @@
 package com.trelix.trelix_app.controller;
 
-import com.trelix.trelix_app.dto.SendMessageRequest;
+import com.trelix.trelix_app.dto.request.SendMessageRequest;
 import com.trelix.trelix_app.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,3 +37,7 @@ public class ChatWebSocketController {
         log.info("Message processed for channel: {}", channelId);
     }
 }
+
+
+
+

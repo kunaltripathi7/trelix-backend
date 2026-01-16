@@ -1,6 +1,8 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.*;
+import com.trelix.trelix_app.dto.request.*;
+import com.trelix.trelix_app.dto.response.*;
+import com.trelix.trelix_app.dto.common.*;
 import com.trelix.trelix_app.enums.TaskPriority;
 import com.trelix.trelix_app.enums.TaskStatus;
 import com.trelix.trelix_app.enums.TaskRole;
@@ -29,3 +31,7 @@ public interface TaskService {
 
     void removeMember(UUID taskId, UUID userId, UUID requesterId);
 }
+
+
+
+

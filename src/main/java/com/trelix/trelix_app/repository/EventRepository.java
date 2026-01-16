@@ -28,3 +28,7 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
                         @Param("end") LocalDateTime end,
                         Pageable pageable);
 }
+
+
+
+

@@ -1,12 +1,12 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.DirectMessageConversationResponse;
-import com.trelix.trelix_app.dto.DirectMessageDetailResponse;
-import com.trelix.trelix_app.dto.DirectMessageMessageResponse;
-import com.trelix.trelix_app.dto.DirectMessageResponse;
-import com.trelix.trelix_app.dto.EditDirectMessageRequest;
-import com.trelix.trelix_app.dto.PagedDirectMessageResponse;
-import com.trelix.trelix_app.dto.SendDirectMessageRequest;
+import com.trelix.trelix_app.dto.response.DirectMessageConversationResponse;
+import com.trelix.trelix_app.dto.response.DirectMessageDetailResponse;
+import com.trelix.trelix_app.dto.response.DirectMessageMessageResponse;
+import com.trelix.trelix_app.dto.response.DirectMessageResponse;
+import com.trelix.trelix_app.dto.request.EditDirectMessageRequest;
+import com.trelix.trelix_app.dto.response.PagedDirectMessageResponse;
+import com.trelix.trelix_app.dto.request.SendDirectMessageRequest;
 import com.trelix.trelix_app.entity.DirectMessage;
 import com.trelix.trelix_app.entity.Message;
 import com.trelix.trelix_app.entity.User;
@@ -252,3 +252,7 @@ public class DirectMessageServiceImpl implements DirectMessageService {
         messageRepository.delete(message);
     }
 }
+
+
+
+

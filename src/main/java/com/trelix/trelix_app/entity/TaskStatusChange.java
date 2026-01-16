@@ -37,3 +37,7 @@ public class TaskStatusChange {
     @Column(name = "changed_at", updatable = false)
     private LocalDateTime changedAt;
 }
+
+
+
+

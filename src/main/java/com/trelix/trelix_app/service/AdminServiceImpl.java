@@ -1,7 +1,7 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.RoleAssignmentRequest;
-import com.trelix.trelix_app.dto.UserResponse;
+import com.trelix.trelix_app.dto.request.RoleAssignmentRequest;
+import com.trelix.trelix_app.dto.response.UserResponse;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.UserRepository;
@@ -31,3 +31,7 @@ public class AdminServiceImpl implements AdminService {
                 updatedUser.getCreatedAt());
     }
 }
+
+
+
+

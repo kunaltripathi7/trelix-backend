@@ -1,7 +1,7 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.CommentDTO;
-import com.trelix.trelix_app.dto.UserResponse;
+import com.trelix.trelix_app.dto.common.CommentDTO;
+import com.trelix.trelix_app.dto.response.UserResponse;
 import com.trelix.trelix_app.entity.Comment;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.EntityType;
@@ -43,18 +43,13 @@ public class CommentServiceImpl implements CommentService {
         if (commentDTO.getTaskId() != null) {
             entityType = EntityType.TASK;
             entityId = commentDTO.getTaskId();
-            // Verify user has access to task
             authorizationService.verifyTaskReadAccess(entityId, userId);
         } else if (commentDTO.getMessageId() != null) {
             entityType = EntityType.MESSAGE;
             entityId = commentDTO.getMessageId();
             final UUID messageId = entityId;
-            // Verify user has access to message's channel
             var message = messageRepository.findById(messageId)
                     .orElseThrow(() -> new ResourceNotFoundException("Message not found with id: " + messageId));
-            // Note: Channel access verification would need to be added to
-            // AuthorizationService
-            // For now, we'll skip this check or add a basic check
         } else {
             throw new InvalidRequestException("A comment must be associated with either a task or a message.",
                     ErrorCode.INVALID_INPUT);
@@ -138,3 +133,7 @@ public class CommentServiceImpl implements CommentService {
                 .build();
     }
 }
+
+
+
+

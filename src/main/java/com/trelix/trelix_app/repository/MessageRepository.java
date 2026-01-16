@@ -28,3 +28,7 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     @Query("SELECT COUNT(m) FROM Message m WHERE m.directMessage.id = :directMessageId")
     long countByDirectMessageId(@Param("directMessageId") UUID directMessageId);
 }
+
+
+
+

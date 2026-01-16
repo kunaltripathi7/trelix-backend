@@ -1,8 +1,8 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.CreateNotificationRequest;
-import com.trelix.trelix_app.dto.NotificationResponse;
-import com.trelix.trelix_app.dto.PagedNotificationResponse;
+import com.trelix.trelix_app.dto.request.CreateNotificationRequest;
+import com.trelix.trelix_app.dto.response.NotificationResponse;
+import com.trelix.trelix_app.dto.response.PagedNotificationResponse;
 import com.trelix.trelix_app.enums.NotificationType;
 
 import java.util.UUID;
@@ -24,3 +24,7 @@ public interface NotificationService {
 
     void deleteNotification(UUID notificationId, UUID userId);
 }
+
+
+
+

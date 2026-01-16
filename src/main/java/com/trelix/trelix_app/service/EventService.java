@@ -1,9 +1,9 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.CreateEventRequest;
-import com.trelix.trelix_app.dto.EventResponse;
-import com.trelix.trelix_app.dto.PagedEventResponse;
-import com.trelix.trelix_app.dto.UpdateEventRequest;
+import com.trelix.trelix_app.dto.request.CreateEventRequest;
+import com.trelix.trelix_app.dto.response.EventResponse;
+import com.trelix.trelix_app.dto.response.PagedEventResponse;
+import com.trelix.trelix_app.dto.request.UpdateEventRequest;
 import com.trelix.trelix_app.enums.EventEntityType;
 
 import java.time.LocalDate;
@@ -20,3 +20,7 @@ public interface EventService {
 
     void deleteEvent(UUID eventId, UUID requesterId);
 }
+
+
+
+
