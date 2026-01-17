@@ -3,6 +3,8 @@ package com.trelix.trelix_app.controller;
 import com.trelix.trelix_app.dto.common.CommentDTO;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.CommentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,39 +20,40 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @RequestMapping("/v1/comments")
 @Validated
+@Tag(name = "Comments", description = "Comments on tasks and messages")
 public class CommentController {
 
     private final CommentService commentService;
 
     @PostMapping
+    @Operation(summary = "Create comment", description = "Add a comment to a task or message")
     public ResponseEntity<CommentDTO> createComment(@Valid @RequestBody CommentDTO commentDTO,
-                                                    @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         CommentDTO createdComment = commentService.createComment(commentDTO, userDetails.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(createdComment);
     }
 
     @GetMapping("/tasks/{taskId}")
+    @Operation(summary = "Get task comments", description = "Get all comments on a task")
     public ResponseEntity<List<CommentDTO>> getCommentsForTask(@PathVariable UUID taskId,
-                                                               @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<CommentDTO> comments = commentService.getCommentsForTask(taskId, userDetails.getId());
         return ResponseEntity.ok(comments);
     }
 
     @GetMapping("/messages/{messageId}")
+    @Operation(summary = "Get message comments", description = "Get all comments on a message (thread replies)")
     public ResponseEntity<List<CommentDTO>> getCommentsForMessage(@PathVariable UUID messageId,
-                                                                  @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<CommentDTO> comments = commentService.getCommentsForMessage(messageId, userDetails.getId());
         return ResponseEntity.ok(comments);
     }
 
     @DeleteMapping("/{commentId}")
+    @Operation(summary = "Delete comment", description = "Delete a comment. Only the author can delete.")
     public ResponseEntity<Void> deleteComment(@PathVariable UUID commentId,
-                                              @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         commentService.deleteComment(commentId, userDetails.getId());
         return ResponseEntity.noContent().build();
     }
 }
-
-
-
-

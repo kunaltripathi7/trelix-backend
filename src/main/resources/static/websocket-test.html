@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trelix WebSocket Test</title>
     <link rel="stylesheet" href="websocket-test.css">
+    <!-- sock Js is providing the api -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 </head>
@@ -25,9 +26,6 @@
             <div class="input-row">
                 <button id="connectBtn" class="primary" onclick="connect()">Connect</button>
                 <button id="disconnectBtn" class="danger" onclick="disconnect()" disabled>Disconnect</button>
-            </div>
-            <div style="margin-top: 12px;">
-                <span class="tag">User: 78423349-2ba5...</span>
             </div>
         </div>
 
@@ -61,7 +59,9 @@
 
         <div class="card">
             <h3>Send Message</h3>
-            <input type="hidden" id="senderId" value="78423349-2ba5-4f02-b7f1-386861771e0f">
+            <div class="input-row">
+                <input type="text" id="senderId" placeholder="Your User UUID" value="">
+            </div>
             <div class="input-row">
                 <input type="text" id="targetChannelId" placeholder="Target Channel UUID">
             </div>

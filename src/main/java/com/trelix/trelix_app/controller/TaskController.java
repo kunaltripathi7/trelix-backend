@@ -13,6 +13,8 @@ import com.trelix.trelix_app.enums.TaskPriority;
 import com.trelix.trelix_app.enums.TaskStatus;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.TaskService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -27,13 +29,15 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/tasks")
-@Validated // enables method level validation like @RequestParam, @NonNull validation
+@Validated
 @RequiredArgsConstructor
+@Tag(name = "Tasks", description = "Task management with filtering, status updates, and assignments")
 public class TaskController {
 
     private final TaskService taskService;
 
     @PostMapping
+    @Operation(summary = "Create task", description = "Create a new task in a team or project")
     public ResponseEntity<TaskResponse> createTask(
             @Valid @RequestBody CreateTaskRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -42,6 +46,7 @@ public class TaskController {
     }
 
     @GetMapping
+    @Operation(summary = "Get tasks", description = "Get paginated tasks with optional filters for team, project, status, priority")
     public ResponseEntity<PagedTaskResponse> getTasks(
             @RequestParam(required = false) UUID teamId,
             @RequestParam(required = false) UUID projectId,
@@ -51,11 +56,13 @@ public class TaskController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "") String query,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-        PagedTaskResponse tasks = taskService.getTasks(teamId, projectId, status, priority, page, size, currentUser.getId(), query);
+        PagedTaskResponse tasks = taskService.getTasks(teamId, projectId, status, priority, page, size,
+                currentUser.getId(), query);
         return ResponseEntity.ok(tasks);
     }
 
     @GetMapping("/{taskId}")
+    @Operation(summary = "Get task details", description = "Get detailed information about a specific task")
     public ResponseEntity<TaskDetailResponse> getTaskById(
             @PathVariable @NotNull UUID taskId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -64,6 +71,7 @@ public class TaskController {
     }
 
     @PutMapping("/{taskId}")
+    @Operation(summary = "Update task", description = "Update task details like title, description, due date")
     public ResponseEntity<TaskResponse> updateTask(
             @PathVariable @NotNull UUID taskId,
             @Valid @RequestBody UpdateTaskRequest request,
@@ -73,6 +81,7 @@ public class TaskController {
     }
 
     @PatchMapping("/{taskId}/status")
+    @Operation(summary = "Update task status", description = "Change task status (TODO, IN_PROGRESS, DONE, etc.)")
     public ResponseEntity<TaskResponse> updateTaskStatus(
             @PathVariable @NotNull UUID taskId,
             @Valid @RequestBody UpdateTaskStatusRequest request,
@@ -82,6 +91,7 @@ public class TaskController {
     }
 
     @DeleteMapping("/{taskId}")
+    @Operation(summary = "Delete task", description = "Delete a task")
     public ResponseEntity<Void> deleteTask(
             @PathVariable @NotNull UUID taskId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -90,6 +100,7 @@ public class TaskController {
     }
 
     @GetMapping("/{taskId}/members")
+    @Operation(summary = "Get task members", description = "Get list of users assigned to a task")
     public ResponseEntity<List<TaskMemberResponse>> getTaskMembers(
             @PathVariable @NotNull UUID taskId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -98,6 +109,7 @@ public class TaskController {
     }
 
     @PostMapping("/{taskId}/members")
+    @Operation(summary = "Assign member", description = "Assign a user to a task. Sends notification to assignee.")
     public ResponseEntity<TaskMemberResponse> assignMember(
             @PathVariable @NotNull UUID taskId,
             @Valid @RequestBody AssignTaskMemberRequest request,
@@ -107,16 +119,19 @@ public class TaskController {
     }
 
     @PutMapping("/{taskId}/members/{userId}")
+    @Operation(summary = "Update member role", description = "Change a task member's role")
     public ResponseEntity<TaskMemberResponse> updateMemberRole(
             @PathVariable @NotNull UUID taskId,
             @PathVariable @NotNull UUID userId,
             @Valid @RequestBody UpdateTaskMemberRoleRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-        TaskMemberResponse updatedMember = taskService.updateMemberRole(taskId, userId, request.role(), currentUser.getId());
+        TaskMemberResponse updatedMember = taskService.updateMemberRole(taskId, userId, request.role(),
+                currentUser.getId());
         return ResponseEntity.ok(updatedMember);
     }
 
     @DeleteMapping("/{taskId}/members/{userId}")
+    @Operation(summary = "Remove member", description = "Unassign a user from a task")
     public ResponseEntity<Void> removeMember(
             @PathVariable @NotNull UUID taskId,
             @PathVariable @NotNull UUID userId,
@@ -125,7 +140,3 @@ public class TaskController {
         return ResponseEntity.noContent().build();
     }
 }
-
-
-
-

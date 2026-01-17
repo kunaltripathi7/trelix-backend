@@ -21,10 +21,13 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/v1/events")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "Events")
 public class EventController {
 
     private final EventService eventService;
@@ -55,7 +58,8 @@ public class EventController {
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        PagedEventResponse response = eventService.getEvents(entityType, entityId, startDate, endDate, page, size, currentUser.getId());
+        PagedEventResponse response = eventService.getEvents(entityType, entityId, startDate, endDate, page, size,
+                currentUser.getId());
         return ResponseEntity.ok(response);
     }
 
@@ -88,7 +92,3 @@ public class EventController {
         return ResponseEntity.noContent().build();
     }
 }
-
-
-
-

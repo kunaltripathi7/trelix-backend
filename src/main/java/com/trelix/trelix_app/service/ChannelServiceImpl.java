@@ -39,9 +39,7 @@ public class ChannelServiceImpl implements ChannelService {
     @Override
     @Transactional
     public ChannelResponse createChannel(CreateChannelRequest request, UUID creatorId) {
-        boolean isTeamChannel = request.teamId() != null && request.projectId() == null;
-        boolean isProjectChannel = request.teamId() != null && request.projectId() != null;
-        boolean isAdHocChannel = request.teamId() == null && request.projectId() == null;
+        boolean isProjectChannel = request.projectId() != null;
         Team team = null;
         Project project = null;
 
@@ -50,33 +48,58 @@ public class ChannelServiceImpl implements ChannelService {
             project = projectRepository.findById(request.projectId())
                     .orElseThrow(() -> new ResourceNotFoundException("Project not found with the given ID"));
             team = project.getTeam();
-        } else if (isTeamChannel) {
+        } else {
             authorizationService.verifyTeamAdmin(request.teamId(), creatorId);
             team = teamRepository.findById(request.teamId())
                     .orElseThrow(() -> new ResourceNotFoundException("Team not found with the given ID"));
         }
 
         Channel channel = Channel.builder()
-                .teamId(request.teamId())
-                .projectId(request.projectId())
                 .team(team)
                 .project(project)
                 .name(request.name())
                 .build();
 
+        return ChannelResponse.from(channelRepository.save(channel));
+    }
+
+    @Override
+    @Transactional
+    public ChannelResponse startDirectMessage(UUID otherUserId, UUID requesterId) {
+        if (otherUserId.equals(requesterId)) {
+            throw new IllegalArgumentException("Cannot start a DM with yourself");
+        }
+
+        User requester = userService.findById(requesterId);
+        User otherUser = userService.findById(otherUserId);
+
+        Channel existingDm = channelRepository.findExistingDmBetweenUsers(requesterId, otherUserId);
+        if (existingDm != null) {
+            return ChannelResponse.from(existingDm);
+        }
+
+        Channel channel = Channel.builder()
+                .name("DM: " + requester.getName() + " & " + otherUser.getName())
+                .build();
+
         Channel savedChannel = channelRepository.save(channel);
 
-        if (isAdHocChannel) {
-            User creator = userService.findById(creatorId);
+        ChannelMember member1 = ChannelMember.builder()
+                .id(new ChannelMember.ChannelMemberId(savedChannel.getId(), requesterId))
+                .channel(savedChannel)
+                .user(requester)
+                .role(ChannelRole.OWNER)
+                .build();
 
-            ChannelMember channelMember = ChannelMember.builder()
-                    .id(new ChannelMember.ChannelMemberId(savedChannel.getId(), creatorId))
-                    .channel(savedChannel)
-                    .user(creator)
-                    .role(ChannelRole.OWNER)
-                    .build();
-            channelMemberRepository.save(channelMember);
-        }
+        ChannelMember member2 = ChannelMember.builder()
+                .id(new ChannelMember.ChannelMemberId(savedChannel.getId(), otherUserId))
+                .channel(savedChannel)
+                .user(otherUser)
+                .role(ChannelRole.MEMBER)
+                .build();
+
+        channelMemberRepository.save(member1);
+        channelMemberRepository.save(member2);
 
         return ChannelResponse.from(savedChannel);
     }
@@ -94,7 +117,7 @@ public class ChannelServiceImpl implements ChannelService {
             return channelRepository.findByTeamIdAndProjectIdIsNull(teamId).stream()
                     .map(ChannelResponse::from)
                     .collect(Collectors.toList());
-        } else if ("AD_HOC".equalsIgnoreCase(type)) {
+        } else if ("DIRECT".equalsIgnoreCase(type) || "AD_HOC".equalsIgnoreCase(type)) {
             return channelRepository.findAdHocChannelsByUserId(requesterId).stream()
                     .map(ChannelResponse::from)
                     .collect(Collectors.toList());
@@ -243,7 +266,3 @@ public class ChannelServiceImpl implements ChannelService {
         }
     }
 }
-
-
-
-

@@ -23,10 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/v1/search")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "Search")
 public class SearchController {
 
     private final SearchService searchService;
@@ -92,7 +95,3 @@ public class SearchController {
         return ResponseEntity.ok(response);
     }
 }
-
-
-
-

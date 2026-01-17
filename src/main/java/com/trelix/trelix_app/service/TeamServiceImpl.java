@@ -15,13 +15,10 @@ import com.trelix.trelix_app.exception.InvalidRequestException;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.TeamRepository;
 import com.trelix.trelix_app.repository.TeamUserRepository;
-import com.trelix.trelix_app.repository.UserRepository;
-import jakarta.persistence.EntityManager;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,9 +32,7 @@ public class TeamServiceImpl implements TeamService {
 
         private final TeamRepository teamRepository;
         private final TeamUserRepository teamUserRepository;
-        private final UserRepository userRepository;
         private final AuthorizationService authorizationService;
-        private final EntityManager em;
         private final UserService userService;
         private final KafkaProducerService kafkaProducerService;
 
@@ -266,7 +261,3 @@ public class TeamServiceImpl implements TeamService {
 
 // why a different endpoint for transferring ownership -> ? Safety, Clarity,
 // Different operation, future maintenance
-
-
-
-

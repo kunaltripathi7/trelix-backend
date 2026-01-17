@@ -4,7 +4,3 @@ public enum SortType {
     RELEVANCE,
     DATE
 }
-
-
-
-

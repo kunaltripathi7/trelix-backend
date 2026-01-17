@@ -12,9 +12,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/v1/admin")
 @RequiredArgsConstructor
+@Tag(name = "Admin")
 public class AdminController {
 
     private final AdminService adminService;
@@ -26,7 +29,3 @@ public class AdminController {
         return ResponseEntity.ok(updatedUser);
     }
 }
-
-
-
-

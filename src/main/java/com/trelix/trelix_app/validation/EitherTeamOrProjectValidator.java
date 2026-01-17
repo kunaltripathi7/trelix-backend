@@ -8,7 +8,8 @@ public class EitherTeamOrProjectValidator implements ConstraintValidator<EitherT
 
     @Override
     public boolean isValid(TeamProjectAware value, ConstraintValidatorContext context) {
-        if (value == null) return true; // Let @NotNull handle null objects
+        if (value == null)
+            return true;
 
         boolean hasTeam = value.teamId() != null;
         boolean hasProject = value.projectId() != null;

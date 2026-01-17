@@ -52,12 +52,6 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<ChannelMember> channelMemberships = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user1")
-    private List<DirectMessage> directMessagesAsUser1 = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user2")
-    private List<DirectMessage> directMessagesAsUser2 = new ArrayList<>();
-
     @OneToMany(mappedBy = "sender")
     private List<Message> sentMessages = new ArrayList<>();
 

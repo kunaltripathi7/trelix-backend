@@ -53,7 +53,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v1/auth/**", "/error").permitAll()
-                        .requestMatchers("/ws/**", "/websocket-test.*").permitAll() // WebSocket + test page assets
+                        .requestMatchers("/ws/**", "/websocket-test.*").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session

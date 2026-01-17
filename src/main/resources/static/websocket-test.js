@@ -129,7 +129,7 @@ function subscribeNotifications() {
         return;
     }
 
-    notificationSubscription = stompClient.subscribe('/user/' + userId + '/queue/notifications', function (message) {
+    notificationSubscription = stompClient.subscribe('/topic/notifications.' + userId, function (message) {
         const notification = JSON.parse(message.body);
         showNotification(notification);
     });

@@ -3,13 +3,13 @@ package com.trelix.trelix_app.controller;
 import com.trelix.trelix_app.dto.request.EditMessageRequest;
 import com.trelix.trelix_app.dto.response.MessageResponse;
 import com.trelix.trelix_app.dto.response.PagedMessageResponse;
-import com.trelix.trelix_app.dto.request.SendMessageRequest;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.MessageService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -21,19 +21,13 @@ import java.util.UUID;
 @RequestMapping("/v1/messages")
 @Validated
 @RequiredArgsConstructor
+@Tag(name = "Messages", description = "Message history and management (send via WebSocket)")
 public class MessageController {
 
     private final MessageService messageService;
 
-    @PostMapping
-    public ResponseEntity<MessageResponse> sendMessage(
-            @Valid @RequestBody SendMessageRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
-        MessageResponse messageResponse = messageService.sendMessage(request, currentUser.getId());
-        return new ResponseEntity<>(messageResponse, HttpStatus.CREATED);
-    }
-
     @GetMapping
+    @Operation(summary = "Get messages", description = "Get paginated message history for a channel")
     public ResponseEntity<PagedMessageResponse> getMessages(
             @RequestParam @NotNull UUID channelId,
             @RequestParam(defaultValue = "0") int page,
@@ -44,6 +38,7 @@ public class MessageController {
     }
 
     @GetMapping("/{messageId}")
+    @Operation(summary = "Get message by ID", description = "Get a specific message by its ID")
     public ResponseEntity<MessageResponse> getMessageById(
             @PathVariable @NotNull UUID messageId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -52,6 +47,7 @@ public class MessageController {
     }
 
     @PutMapping("/{messageId}")
+    @Operation(summary = "Edit message", description = "Edit message content. Only the sender can edit.")
     public ResponseEntity<MessageResponse> editMessage(
             @PathVariable @NotNull UUID messageId,
             @Valid @RequestBody EditMessageRequest request,
@@ -61,6 +57,7 @@ public class MessageController {
     }
 
     @DeleteMapping("/{messageId}")
+    @Operation(summary = "Delete message", description = "Delete a message. Only the sender can delete.")
     public ResponseEntity<Void> deleteMessage(
             @PathVariable @NotNull UUID messageId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -68,7 +65,3 @@ public class MessageController {
         return ResponseEntity.noContent().build();
     }
 }
-
-
-
-

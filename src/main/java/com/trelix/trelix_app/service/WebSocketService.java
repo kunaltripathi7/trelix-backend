@@ -21,18 +21,8 @@ public class WebSocketService {
     }
 
     public void sendNotificationToUser(UUID userId, Object notification) {
-        String destination = "/queue/notifications";
-        messagingTemplate.convertAndSendToUser(userId.toString(), destination, notification);
+        String destination = "/topic/notifications." + userId;
+        messagingTemplate.convertAndSend(destination, notification);
         log.debug("Sent notification to user: {}", userId);
     }
-
-    public void broadcastToDM(UUID dmId, Object payload) {
-        String destination = "/topic/dm." + dmId;
-        messagingTemplate.convertAndSend(destination, payload);
-        log.debug("Broadcast to DM: {}", destination);
-    }
 }
-
-
-
-

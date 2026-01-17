@@ -26,10 +26,6 @@ public class Message {
     private Channel channel;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "direct_message_id")
-    private DirectMessage directMessage;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 

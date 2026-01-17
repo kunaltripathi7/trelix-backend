@@ -12,8 +12,7 @@ public record ChannelResponse(
         UUID projectId,
         String name,
         String type,
-        LocalDateTime createdAt
-) {
+        LocalDateTime createdAt) {
     public static ChannelResponse from(Channel channel) {
         String channelType;
         if (channel.getTeamId() != null && channel.getProjectId() != null) {
@@ -21,7 +20,7 @@ public record ChannelResponse(
         } else if (channel.getTeamId() != null) {
             channelType = "TEAM";
         } else {
-            channelType = "AD_HOC";
+            channelType = "DIRECT";
         }
 
         return new ChannelResponse(
@@ -30,11 +29,6 @@ public record ChannelResponse(
                 channel.getProjectId(),
                 channel.getName(),
                 channelType,
-                channel.getCreatedAt()
-        );
+                channel.getCreatedAt());
     }
 }
-
-
-
-

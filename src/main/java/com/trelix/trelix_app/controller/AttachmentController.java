@@ -17,10 +17,13 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/v1/attachments")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "Attachments")
 public class AttachmentController {
 
     private final AttachmentService attachmentService;
@@ -44,7 +47,8 @@ public class AttachmentController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         UUID requesterId = userDetails.getId();
-        List<AttachmentResponse> responses = attachmentService.getAttachmentsByEntity(entityType, entityId, requesterId);
+        List<AttachmentResponse> responses = attachmentService.getAttachmentsByEntity(entityType, entityId,
+                requesterId);
         return ResponseEntity.ok(responses);
     }
 
@@ -80,7 +84,3 @@ public class AttachmentController {
         return ResponseEntity.noContent().build();
     }
 }
-
-
-
-

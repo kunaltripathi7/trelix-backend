@@ -7,7 +7,7 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 @Configuration
-@EnableWebSocketMessageBroker
+@EnableWebSocketMessageBroker // stomp messaging
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
@@ -15,7 +15,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         config.enableSimpleBroker("/topic", "/queue");
 
-        config.setApplicationDestinationPrefixes("/app");
+        config.setApplicationDestinationPrefixes("/app"); // map to messaging controller
 
         config.setUserDestinationPrefix("/user");
     }
@@ -27,7 +27,3 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .withSockJS();
     }
 }
-
-
-
-

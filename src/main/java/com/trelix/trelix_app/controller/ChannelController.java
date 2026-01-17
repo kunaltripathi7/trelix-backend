@@ -8,6 +8,8 @@ import com.trelix.trelix_app.dto.request.CreateChannelRequest;
 import com.trelix.trelix_app.dto.request.UpdateChannelRequest;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.ChannelService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -24,11 +26,13 @@ import java.util.UUID;
 @RequestMapping("/v1/channels")
 @Validated
 @RequiredArgsConstructor
+@Tag(name = "Channels", description = "Channel management for team/project collaboration and direct messaging")
 public class ChannelController {
 
     private final ChannelService channelService;
 
     @PostMapping
+    @Operation(summary = "Create a channel", description = "Create a team or project channel. Requires either teamId or projectId.")
     public ResponseEntity<ChannelResponse> createChannel(
             @Valid @RequestBody CreateChannelRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -36,7 +40,17 @@ public class ChannelController {
         return new ResponseEntity<>(channelResponse, HttpStatus.CREATED);
     }
 
+    @PostMapping("/dm")
+    @Operation(summary = "Start a direct message", description = "Create or get existing DM channel with another user. Both users are automatically added as members.")
+    public ResponseEntity<ChannelResponse> startDirectMessage(
+            @RequestParam @NotNull UUID otherUserId,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        ChannelResponse channelResponse = channelService.startDirectMessage(otherUserId, currentUser.getId());
+        return ResponseEntity.ok(channelResponse);
+    }
+
     @GetMapping
+    @Operation(summary = "Get channels", description = "Get channels by teamId, projectId, or type (DIRECT for DMs)")
     public ResponseEntity<List<ChannelResponse>> getChannels(
             @RequestParam(required = false) UUID teamId,
             @RequestParam(required = false) UUID projectId,
@@ -47,6 +61,7 @@ public class ChannelController {
     }
 
     @GetMapping("/{channelId}")
+    @Operation(summary = "Get channel details", description = "Get detailed information about a specific channel")
     public ResponseEntity<ChannelDetailResponse> getChannelById(
             @PathVariable @NotNull UUID channelId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -55,6 +70,7 @@ public class ChannelController {
     }
 
     @PutMapping("/{channelId}")
+    @Operation(summary = "Update channel", description = "Update channel name or description")
     public ResponseEntity<ChannelResponse> updateChannel(
             @PathVariable @NotNull UUID channelId,
             @Valid @RequestBody UpdateChannelRequest request,
@@ -64,6 +80,7 @@ public class ChannelController {
     }
 
     @DeleteMapping("/{channelId}")
+    @Operation(summary = "Delete channel", description = "Delete a channel and all its messages")
     public ResponseEntity<Void> deleteChannel(
             @PathVariable @NotNull UUID channelId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -72,6 +89,7 @@ public class ChannelController {
     }
 
     @GetMapping("/{channelId}/members")
+    @Operation(summary = "Get channel members", description = "Get list of members in a channel")
     public ResponseEntity<List<ChannelMemberResponse>> getChannelMembers(
             @PathVariable @NotNull UUID channelId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -80,6 +98,7 @@ public class ChannelController {
     }
 
     @PostMapping("/{channelId}/members")
+    @Operation(summary = "Add channel member", description = "Add a user to a channel")
     public ResponseEntity<ChannelMemberResponse> addMember(
             @PathVariable @NotNull UUID channelId,
             @Valid @RequestBody AddChannelMemberRequest request,
@@ -89,6 +108,7 @@ public class ChannelController {
     }
 
     @DeleteMapping("/{channelId}/members/{userId}")
+    @Operation(summary = "Remove channel member", description = "Remove a user from a channel")
     public ResponseEntity<Void> removeMember(
             @PathVariable @NotNull UUID channelId,
             @PathVariable @NotNull UUID userId,
@@ -97,7 +117,3 @@ public class ChannelController {
         return ResponseEntity.noContent().build();
     }
 }
-
-
-
-

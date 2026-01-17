@@ -6,6 +6,8 @@ import com.trelix.trelix_app.dto.request.RefreshTokenRequest;
 import com.trelix.trelix_app.dto.request.RegisterRequest;
 import com.trelix.trelix_app.dto.response.RegisterResponse;
 import com.trelix.trelix_app.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import java.util.Map;
@@ -23,12 +25,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/auth")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "Authentication", description = "User registration, login, and token management")
 public class AuthController {
 
     private final AuthService authService;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Register", description = "Create a new user account")
     public ResponseEntity<RegisterResponse> register(
             @Valid @RequestBody RegisterRequest request) {
         RegisterResponse response = authService.register(request);
@@ -36,6 +40,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Login", description = "Authenticate and receive JWT tokens")
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
@@ -43,6 +48,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
+    @Operation(summary = "Refresh token", description = "Get new access token using refresh token")
     public ResponseEntity<AuthResponse> refresh(
             @Valid @RequestBody RefreshTokenRequest request) {
         AuthResponse response = authService.refreshToken(request.refreshToken());
@@ -50,6 +56,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @Operation(summary = "Logout", description = "Invalidate the current access token")
     public ResponseEntity<Map<String, String>> logout(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         String token = null;
@@ -61,7 +68,3 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 }
-
-
-
-
