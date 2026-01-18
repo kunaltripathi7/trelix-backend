@@ -19,6 +19,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import com.trelix.trelix_app.exception.ForbiddenException;
+import com.trelix.trelix_app.exception.UnauthorizedException;
+import com.trelix.trelix_app.exception.InvalidRequestException;
+import com.trelix.trelix_app.exception.ConflictException;
+import com.trelix.trelix_app.exception.ServiceException;
+import com.trelix.trelix_app.exception.ResourceNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -159,6 +165,14 @@ public class GlobalExceptionHandler {
         public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex,
                         HttpServletRequest request) {
                 ErrorResponse errorResponse = buildErrorResponse(ex.getMessage(), ErrorCode.UNAUTHORIZED_ACCESS,
+                                request.getRequestURI());
+                return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+        }
+
+        @ExceptionHandler(ForbiddenException.class)
+        public ResponseEntity<ErrorResponse> handleForbiddenException(ForbiddenException ex,
+                        HttpServletRequest request) {
+                ErrorResponse errorResponse = buildErrorResponse(ex.getMessage(), ex.getErrorCode(),
                                 request.getRequestURI());
                 return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
         }

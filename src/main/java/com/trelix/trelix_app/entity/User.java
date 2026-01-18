@@ -1,7 +1,6 @@
 package com.trelix.trelix_app.entity;
 
 import com.trelix.trelix_app.enums.ROLE;
-import com.trelix.trelix_app.enums.TeamRole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -74,9 +73,6 @@ public class User {
     private List<TaskStatusChange> taskStatusChanges = new ArrayList<>();
 
     private boolean enabled = true;
-
-    @Enumerated(EnumType.STRING)
-    private TeamRole teamRole;
 
     @Enumerated(EnumType.STRING)
     private ROLE role;

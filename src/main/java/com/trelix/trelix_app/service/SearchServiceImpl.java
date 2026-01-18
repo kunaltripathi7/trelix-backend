@@ -1,8 +1,8 @@
 package com.trelix.trelix_app.service;
 
+import com.trelix.trelix_app.dto.common.SearchResultItem;
 import com.trelix.trelix_app.dto.response.GlobalSearchResponse;
 import com.trelix.trelix_app.dto.response.ProjectSearchResponse;
-import com.trelix.trelix_app.dto.common.SearchResultItem;
 import com.trelix.trelix_app.dto.response.TaskSearchResponse;
 import com.trelix.trelix_app.dto.response.TeamSearchResponse;
 import com.trelix.trelix_app.dto.response.UserSearchResponse;
@@ -20,7 +20,9 @@ import com.trelix.trelix_app.repository.TaskRepository;
 import com.trelix.trelix_app.repository.TeamRepository;
 import com.trelix.trelix_app.repository.TeamUserRepository;
 import com.trelix.trelix_app.repository.UserRepository;
+import com.trelix.trelix_app.service.search.SearchProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,11 +33,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SearchServiceImpl implements SearchService {
 
     private final TeamRepository teamRepository;
@@ -43,32 +47,34 @@ public class SearchServiceImpl implements SearchService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final TeamUserRepository teamUserRepository;
+    private final List<SearchProvider> searchProviders;
 
     @Override
-    @Transactional(readOnly = true)
     public GlobalSearchResponse globalSearch(String query, SearchType type, int page, int size, SortType sort,
             UUID userId) {
+        log.info("Performing global search using Strategy Pattern. Query: '{}', Type: {}, UserId: {}", query, type,
+                userId);
         validateQuery(query);
 
-        List<SearchResultItem> allResults = new ArrayList<>();
-        Pageable unpaged = Pageable.unpaged();
+        List<SearchProvider> providersToUse = searchProviders.stream()
+                .filter(p -> type == null || p.getType() == type)
+                .toList();
 
-        if (type == null || type == SearchType.TEAM) {
-            allResults.addAll(teamRepository.searchByUserAccess(query, userId, unpaged).stream()
-                    .map(team -> toSearchResultItem(team, query)).toList());
-        }
-        if (type == null || type == SearchType.PROJECT) {
-            allResults.addAll(projectRepository.searchByUserAccess(query, null, userId, unpaged).stream()
-                    .map(project -> toSearchResultItem(project, query)).toList());
-        }
-        if (type == null || type == SearchType.TASK) {
-            allResults.addAll(taskRepository.findTasksForUser(userId, null, null, null, null, query, unpaged).stream()
-                    .map(task -> toSearchResultItem(task, query)).toList());
-        }
-        if (type == null || type == SearchType.USER) {
-            allResults.addAll(userRepository.searchByNameOrEmail(query, unpaged).stream()
-                    .map(user -> toSearchResultItem(user, query)).toList());
-        }
+        List<CompletableFuture<List<SearchResultItem>>> futures = providersToUse.stream()
+                .map(provider -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return provider.search(query, userId);
+                    } catch (Exception e) {
+                        log.error("Provider {} failed: {}", provider.getType(), e.getMessage());
+                        return new ArrayList<SearchResultItem>(); // Circuit breaker / graceful degradation
+                    }
+                }))
+                .toList();
+
+        List<SearchResultItem> allResults = futures.stream()
+                .map(CompletableFuture::join)
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
 
         if (sort == SortType.RELEVANCE) {
             allResults.sort(Comparator.comparingDouble(SearchResultItem::relevanceScore).reversed());
@@ -79,7 +85,8 @@ public class SearchServiceImpl implements SearchService {
 
         int start = page * size;
         int end = Math.min(start + size, allResults.size());
-        List<SearchResultItem> paginatedResults = allResults.subList(start, end);
+        List<SearchResultItem> paginatedResults = (start > allResults.size()) ? new ArrayList<>()
+                : allResults.subList(start, end);
 
         return new GlobalSearchResponse(paginatedResults, page, (int) Math.ceil((double) allResults.size() / size),
                 allResults.size(), query, type != null ? type.toString() : null);
@@ -88,6 +95,7 @@ public class SearchServiceImpl implements SearchService {
     @Override
     @Transactional(readOnly = true)
     public Page<TeamSearchResponse> searchTeams(String query, int page, int size, UUID userId) {
+        log.debug("Searching teams. Query: '{}', UserId: {}", query, userId);
         validateQuery(query);
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
         Page<Team> teamPage = teamRepository.searchByUserAccess(query, userId, pageable);
@@ -98,6 +106,7 @@ public class SearchServiceImpl implements SearchService {
     @Override
     @Transactional(readOnly = true)
     public Page<ProjectSearchResponse> searchProjects(String query, UUID teamId, int page, int size, UUID userId) {
+        log.debug("Searching projects. Query: '{}', TeamId: {}, UserId: {}", query, teamId, userId);
         validateQuery(query);
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
         Page<Project> projectPage = projectRepository.searchByUserAccess(query, teamId, userId, pageable);
@@ -109,6 +118,8 @@ public class SearchServiceImpl implements SearchService {
     @Transactional(readOnly = true)
     public Page<TaskSearchResponse> searchTasks(String query, UUID projectId, TaskStatus status, int page, int size,
             UUID userId) {
+        log.debug("Searching tasks. Query: '{}', ProjectId: {}, Status: {}, UserId: {}", query, projectId, status,
+                userId);
         validateQuery(query);
         Pageable pageable = PageRequest.of(page, size, Sort.by("updatedAt").descending());
         Page<Task> taskPage = taskRepository.findTasksForUser(userId, null, projectId, status, null, query, pageable);
@@ -118,6 +129,7 @@ public class SearchServiceImpl implements SearchService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserSearchResponse> searchUsers(String query, int page, int size) {
+        log.debug("Searching users. Query: '{}'", query);
         validateQuery(query);
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
         Page<User> userPage = userRepository.searchByNameOrEmail(query, pageable);
@@ -129,71 +141,4 @@ public class SearchServiceImpl implements SearchService {
             throw new BadRequestException("Search query must be at least 2 characters", ErrorCode.INVALID_INPUT);
         }
     }
-
-    private SearchResultItem toSearchResultItem(Object entity, String query) {
-        if (entity instanceof Team team) {
-            return new SearchResultItem(team.getId(), SearchType.TEAM.name(), team.getName(), team.getDescription(),
-                    generateSnippet(team.getName(), team.getDescription(), query),
-                    Map.of("memberCount", String.valueOf(teamUserRepository.countById_TeamId(team.getId()))),
-                    team.getUpdatedAt(), calculateRelevance(team.getName(), team.getDescription(), query));
-        } else if (entity instanceof Project project) {
-            return new SearchResultItem(project.getId(), SearchType.PROJECT.name(), project.getName(),
-                    project.getDescription(), generateSnippet(project.getName(), project.getDescription(), query),
-                    Map.of("teamId", project.getTeam().getId().toString(), "teamName", project.getTeam().getName(),
-                            "taskCount", String.valueOf(project.getTasks() != null ? project.getTasks().size() : 0)),
-                    project.getUpdatedAt(), calculateRelevance(project.getName(), project.getDescription(), query));
-        } else if (entity instanceof Task task) {
-            return new SearchResultItem(task.getId(), SearchType.TASK.name(), task.getTitle(), task.getDescription(),
-                    generateSnippet(task.getTitle(), task.getDescription(), query),
-                    Map.of("projectId", task.getProject() != null ? task.getProject().getId().toString() : "N/A",
-                            "projectName", task.getProject() != null ? task.getProject().getName() : "N/A", "status",
-                            task.getStatus().name(), "priority", task.getPriority().name()),
-                    task.getUpdatedAt(), calculateRelevance(task.getTitle(), task.getDescription(), query));
-        } else if (entity instanceof User user) {
-            return new SearchResultItem(user.getId(), SearchType.USER.name(), user.getName(), user.getEmail(),
-                    generateSnippet(user.getName(), user.getEmail(), query), Map.of("email", user.getEmail()),
-                    user.getUpdatedAt(), calculateRelevance(user.getName(), user.getEmail(), query));
-        }
-        return null;
-    }
-
-    private double calculateRelevance(String title, String description, String query) {
-        double score = 0.0;
-        String lowerQuery = query.toLowerCase();
-        String lowerTitle = title != null ? title.toLowerCase() : "";
-        String lowerDesc = description != null ? description.toLowerCase() : "";
-        if (lowerTitle.equals(lowerQuery))
-            score += 100.0;
-        else if (lowerTitle.startsWith(lowerQuery))
-            score += 50.0;
-        else if (lowerTitle.contains(lowerQuery))
-            score += 25.0;
-        if (lowerDesc.contains(lowerQuery))
-            score += 10.0;
-        score += (100.0 / (title != null ? title.length() + 1 : 1));
-        return score;
-    }
-
-    private String generateSnippet(String title, String description, String query) {
-        String text = description != null ? description : title;
-        if (text == null || text.isEmpty())
-            return "";
-        String lowerText = text.toLowerCase();
-        String lowerQuery = query.toLowerCase();
-        int index = lowerText.indexOf(lowerQuery);
-        if (index == -1)
-            return text.length() > 100 ? text.substring(0, 100) + "..." : text;
-        int start = Math.max(0, index - 50);
-        int end = Math.min(text.length(), index + query.length() + 50);
-        String snippet = text.substring(start, end);
-        if (start > 0)
-            snippet = "..." + snippet;
-        if (end < text.length())
-            snippet = snippet + "...";
-        return snippet;
-    }
 }
-
-
-
-

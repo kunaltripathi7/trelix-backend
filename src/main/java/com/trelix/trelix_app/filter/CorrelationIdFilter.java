@@ -32,7 +32,7 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         }
 
         // adds in current threadLocal Map & while logging gets value from threadLocal
-        // Map
+        // map
         MDC.put(CORRELATION_ID_MDC_KEY, correlationId);
         response.setHeader(CORRELATION_ID_HEADER, correlationId);
 

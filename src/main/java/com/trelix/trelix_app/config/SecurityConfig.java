@@ -49,7 +49,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(jwtAuthEntryPoint) // Tell Spring to use our custom entry point
+                        .authenticationEntryPoint(jwtAuthEntryPoint) // Tell Spring to use our custom entry point -> not
+                                                                     // authenticated
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v1/auth/**", "/error").permitAll()

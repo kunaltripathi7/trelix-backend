@@ -55,6 +55,12 @@ public class JwtUtil {
         return (email.equals(userDetails.getUsername()));
     }
 
+    public long getRemainingExpiration(String token) {
+        Date expiration = extractClaim(token, Claims::getExpiration);
+        return Math.max(0, expiration.getTime() - System.currentTimeMillis());
+    }
+
+    // F<I, O>
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);

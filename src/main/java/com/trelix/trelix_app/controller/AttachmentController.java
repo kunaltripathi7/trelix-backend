@@ -17,6 +17,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
@@ -29,6 +30,7 @@ public class AttachmentController {
     private final AttachmentService attachmentService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload attachment", description = "Upload a file to an entity")
     public ResponseEntity<AttachmentResponse> uploadAttachment(
             @RequestParam("file") MultipartFile file,
             @RequestParam("entityType") EntityType entityType,
@@ -41,6 +43,7 @@ public class AttachmentController {
     }
 
     @GetMapping
+    @Operation(summary = "Get attachments", description = "Get list of attachments for an entity")
     public ResponseEntity<List<AttachmentResponse>> getAttachments(
             @RequestParam EntityType entityType,
             @RequestParam UUID entityId,
@@ -53,6 +56,7 @@ public class AttachmentController {
     }
 
     @GetMapping("/{attachmentId}")
+    @Operation(summary = "Get attachment", description = "Get details of an attachment")
     public ResponseEntity<AttachmentResponse> getAttachmentById(
             @PathVariable UUID attachmentId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -63,6 +67,7 @@ public class AttachmentController {
     }
 
     @GetMapping("/{attachmentId}/download")
+    @Operation(summary = "Download attachment", description = "Get redirect URL for downloading the file")
     public ResponseEntity<Void> downloadAttachment(
             @PathVariable UUID attachmentId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -75,6 +80,8 @@ public class AttachmentController {
     }
 
     @DeleteMapping("/{attachmentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Delete attachment", description = "Delete an attachment")
     public ResponseEntity<Void> deleteAttachment(
             @PathVariable UUID attachmentId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {

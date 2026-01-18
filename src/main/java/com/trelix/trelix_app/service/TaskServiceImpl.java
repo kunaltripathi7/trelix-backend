@@ -15,7 +15,6 @@ import com.trelix.trelix_app.enums.TaskRole;
 import com.trelix.trelix_app.enums.TaskStatus;
 import com.trelix.trelix_app.exception.ConflictException;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
-import com.trelix.trelix_app.repository.ProjectRepository;
 import com.trelix.trelix_app.repository.TaskMemberRepository;
 import com.trelix.trelix_app.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -136,7 +136,7 @@ public class TaskServiceImpl implements TaskService {
 
         Task updatedTask = taskRepository.save(task);
 
-        // Notify all task members about the status change (except the one who made the
+        // notify all task members about the status change (except the one who made the
         // change)
         task.getMembers().forEach(member -> {
             if (!member.getUser().getId().equals(requesterId)) {
@@ -146,7 +146,9 @@ public class TaskServiceImpl implements TaskService {
                         NotificationType.TASK_STATUS_CHANGED,
                         "Task Status Changed",
                         "Task '" + task.getTitle() + "' status changed to: " + newStatus,
-                        taskId));
+                        taskId,
+                        Map.of("taskTitle", task.getTitle(), "oldStatus", task.getStatus().toString(), "newStatus",
+                                newStatus.toString())));
             }
         });
 
@@ -216,7 +218,8 @@ public class TaskServiceImpl implements TaskService {
                     NotificationType.TASK_ASSIGNED,
                     "Task Assigned",
                     "You have been assigned to the task: " + task.getTitle(),
-                    taskId));
+                    taskId,
+                    Map.of("taskTitle", task.getTitle())));
             return TaskMemberResponse.from(savedTaskMember);
         } catch (DataIntegrityViolationException e) {
             throw new ConflictException("User " + request.userId() + " is already assigned to task " + taskId,
@@ -262,7 +265,3 @@ public class TaskServiceImpl implements TaskService {
         taskMemberRepository.delete(taskMember);
     }
 }
-
-
-
-

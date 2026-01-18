@@ -9,7 +9,6 @@ import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.EventEntityType;
 import com.trelix.trelix_app.enums.ErrorCode;
 import com.trelix.trelix_app.exception.BadRequestException;
-import com.trelix.trelix_app.exception.ForbiddenException;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.EventRepository;
 import com.trelix.trelix_app.repository.UserRepository;
@@ -39,7 +38,7 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public EventResponse createEvent(CreateEventRequest request, UUID creatorId) {
-        verifyEntityAccess(request.entityType(), request.entityId(), creatorId);
+        authorizationService.verifyEntityAccess(request.entityType(), request.entityId(), creatorId);
 
         User creator = userRepository.findById(creatorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Creator not found with ID: " + creatorId));
@@ -55,7 +54,8 @@ public class EventServiceImpl implements EventService {
                 .build();
 
         event = eventRepository.save(event);
-        return toEventResponse(event, creator.getName());
+        String entityName = getEntityName(event.getEntityType(), event.getEntityId());
+        return EventResponse.from(event, creator.getName(), entityName);
     }
 
     @Override
@@ -63,7 +63,7 @@ public class EventServiceImpl implements EventService {
     public PagedEventResponse getEvents(EventEntityType entityType, UUID entityId, LocalDate startDate,
             LocalDate endDate, int page, int size, UUID requesterId) {
         if (entityType != null && entityId != null) {
-            verifyEntityAccess(entityType, entityId, requesterId);
+            authorizationService.verifyEntityAccess(entityType, entityId, requesterId);
         } else if (entityType != null || entityId != null) {
             throw new BadRequestException("Both entityType and entityId must be provided if one is present.",
                     ErrorCode.INVALID_REQUEST_PARAMETER);
@@ -80,15 +80,12 @@ public class EventServiceImpl implements EventService {
         List<EventResponse> eventResponses = eventPage.getContent().stream()
                 .map(event -> {
                     User creator = userRepository.findById(event.getCreatedBy()).orElse(null);
-                    return toEventResponse(event, creator != null ? creator.getName() : "Unknown");
+                    String entityName = getEntityName(event.getEntityType(), event.getEntityId());
+                    return EventResponse.from(event, creator != null ? creator.getName() : "Unknown", entityName);
                 })
                 .collect(Collectors.toList());
 
-        return new PagedEventResponse(
-                eventResponses,
-                eventPage.getNumber(),
-                eventPage.getTotalPages(),
-                eventPage.getTotalElements());
+        return PagedEventResponse.from(eventPage, eventResponses);
     }
 
     @Override
@@ -97,12 +94,13 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with ID: " + eventId));
 
-        verifyEntityAccess(event.getEntityType(), event.getEntityId(), requesterId);
+        authorizationService.verifyEntityAccess(event.getEntityType(), event.getEntityId(), requesterId);
 
         User creator = userRepository.findById(event.getCreatedBy())
                 .orElseThrow(() -> new ResourceNotFoundException("Creator not found for event"));
 
-        return toEventResponse(event, creator.getName());
+        String entityName = getEntityName(event.getEntityType(), event.getEntityId());
+        return EventResponse.from(event, creator.getName(), entityName);
     }
 
     @Override
@@ -111,7 +109,7 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with ID: " + eventId));
 
-        verifyModifyPermission(event, requesterId);
+        authorizationService.verifyEventModification(event, requesterId);
 
         event.setTitle(request.title());
         event.setDescription(request.description());
@@ -121,7 +119,8 @@ public class EventServiceImpl implements EventService {
         event = eventRepository.save(event);
         User creator = userRepository.findById(event.getCreatedBy())
                 .orElseThrow(() -> new ResourceNotFoundException("Creator not found for event"));
-        return toEventResponse(event, creator.getName());
+        String entityName = getEntityName(event.getEntityType(), event.getEntityId());
+        return EventResponse.from(event, creator.getName(), entityName);
     }
 
     @Override
@@ -130,54 +129,12 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with ID: " + eventId));
 
-        verifyModifyPermission(event, requesterId);
+        authorizationService.verifyEventModification(event, requesterId);
 
         eventRepository.delete(event);
-    }
-
-    private void verifyEntityAccess(EventEntityType entityType, UUID entityId, UUID userId) {
-        try {
-            switch (entityType) {
-                case TEAM -> authorizationService.verifyTeamMembership(entityId, userId);
-                case PROJECT -> authorizationService.verifyProjectMembership(entityId, userId);
-                case TASK -> authorizationService.verifyTaskReadAccess(entityId, userId);
-                default -> throw new BadRequestException("Unsupported entity type for events: " + entityType,
-                        ErrorCode.INVALID_INPUT);
-            }
-        } catch (ResourceNotFoundException e) {
-            throw new ForbiddenException("You do not have access to this entity.", ErrorCode.FORBIDDEN);
-        }
-    }
-
-    private void verifyModifyPermission(Event event, UUID userId) {
-        if (event.getCreatedBy().equals(userId)) {
-            return;
-        }
-        throw new ForbiddenException("You do not have permission to modify this event.", ErrorCode.FORBIDDEN);
-    }
-
-    private EventResponse toEventResponse(Event event, String creatorName) {
-        String entityName = getEntityName(event.getEntityType(), event.getEntityId());
-
-        return new EventResponse(
-                event.getId(),
-                event.getEntityType(),
-                event.getEntityId(),
-                entityName,
-                event.getTitle(),
-                event.getDescription(),
-                event.getStartTime(),
-                event.getEndTime(),
-                event.getCreatedBy(),
-                creatorName,
-                event.getCreatedAt());
     }
 
     private String getEntityName(EventEntityType entityType, UUID entityId) {
         return entityType.name() + " " + entityId.toString().substring(0, 8);
     }
 }
-
-
-
-

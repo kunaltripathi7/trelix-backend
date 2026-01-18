@@ -84,7 +84,11 @@ function subscribeChannel() {
 
     const subscription = stompClient.subscribe('/topic/channel.' + channelId, function (message) {
         const msg = JSON.parse(message.body);
-        showMessage(msg, channelId);
+        if (msg.type && msg.type.startsWith('COMMENT_')) {
+            showCommentEvent(msg, channelId);
+        } else {
+            showMessage(msg, channelId);
+        }
     });
 
     channelSubscriptions[channelId] = subscription;
@@ -166,9 +170,60 @@ function sendMessage() {
     }
 }
 
+
+
+function handleCommentEnter(event) {
+    if (event.key === 'Enter') {
+        sendComment();
+    }
+}
+
 function handleEnter(event) {
     if (event.key === 'Enter') {
         sendMessage();
+    }
+}
+
+async function sendComment() {
+    const messageId = validateInput('targetMessageId', true);
+    const userId = validateInput('senderId', true);
+    const content = document.getElementById('commentContent').value.trim();
+
+    if (!messageId || !userId) return;
+
+    if (!content) {
+        document.getElementById('commentContent').classList.add('error');
+        return;
+    }
+    document.getElementById('commentContent').classList.remove('error');
+
+    const token = document.getElementById('authToken').value.trim();
+    if (!token) {
+        addMessage('Please enter a JWT Token in the Connection section first.', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/v1/comments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                messageId: messageId,
+                content: content
+            })
+        });
+
+        if (response.ok) {
+            // Success - do nothing, wait for WebSocket event
+            document.getElementById('commentContent').value = '';
+        } else {
+            throw new Error('Status ' + response.status);
+        }
+    } catch (e) {
+        addMessage('Post Comment failed: ' + e.message, 'error');
     }
 }
 
@@ -179,6 +234,14 @@ function showMessage(msg, channelId) {
 
 function showNotification(notification) {
     addMessage('[notification] ' + notification.type + ': ' + (notification.message || 'New notification'), 'notification');
+}
+
+function showCommentEvent(msg, channelId) {
+    const data = msg.data;
+    const type = msg.type.replace('COMMENT_', '');
+    const user = data.user.name;
+    const content = data.content;
+    addMessage(`[${channelId.substring(0, 8)}...] [${type}] ${user}: ${content}`, 'comment');
 }
 
 function addMessage(text, type = '') {

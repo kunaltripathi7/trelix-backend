@@ -21,6 +21,7 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
@@ -33,12 +34,15 @@ public class EventController {
     private final EventService eventService;
 
     @PostMapping
+    @Operation(summary = "Create event", description = "Create a new calendar event")
     public ResponseEntity<EventResponse> createEvent(
             @Valid @RequestBody CreateEventRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         EventResponse response = eventService.createEvent(request, currentUser.getId());
 
+        // sending back the uri of the created event, then attaching it to header
+        // (Richardson maturity model) -> Hateoas guiding the useer to next resource
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
                 .path("/{id}")
@@ -49,6 +53,7 @@ public class EventController {
     }
 
     @GetMapping
+    @Operation(summary = "Get events", description = "Get events filtered by type, entity, and date range")
     public ResponseEntity<PagedEventResponse> getEvents(
             @RequestParam(required = false) EventEntityType entityType,
             @RequestParam(required = false) UUID entityId,
@@ -64,6 +69,7 @@ public class EventController {
     }
 
     @GetMapping("/{eventId}")
+    @Operation(summary = "Get event by ID", description = "Get detailed information about a specific event")
     public ResponseEntity<EventResponse> getEventById(
             @PathVariable UUID eventId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -73,6 +79,7 @@ public class EventController {
     }
 
     @PutMapping("/{eventId}")
+    @Operation(summary = "Update event", description = "Update an existing event")
     public ResponseEntity<EventResponse> updateEvent(
             @PathVariable UUID eventId,
             @Valid @RequestBody UpdateEventRequest request,
@@ -84,6 +91,7 @@ public class EventController {
 
     @DeleteMapping("/{eventId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Delete event", description = "Delete an event")
     public ResponseEntity<Void> deleteEvent(
             @PathVariable UUID eventId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {

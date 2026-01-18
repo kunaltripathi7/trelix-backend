@@ -14,6 +14,8 @@ import com.trelix.trelix_app.exception.UnauthorizedException;
 import com.trelix.trelix_app.repository.UserRepository;
 import com.trelix.trelix_app.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,9 +26,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -34,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     @Transactional
@@ -97,8 +102,19 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public void logout(String token) {
-        System.out.println("User logged out (token discarded by client): " + token);
+        if (token != null) {
+            try {
+                long remainingMs = jwtUtil.getRemainingExpiration(token);
+                if (remainingMs > 0) {
+                    tokenBlacklistService.blacklistToken(token, remainingMs);
+                }
+                UUID userId = jwtUtil.extractUserId(token);
+                refreshTokenService.revokeAllUserTokens(userId);
+            } catch (Exception e) {
+                log.debug("Could not revoke tokens on logout: {}", e.getMessage());
+            }
+        }
     }
-
 }

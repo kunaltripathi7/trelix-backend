@@ -73,21 +73,6 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public MessageResponse getMessageById(UUID messageId, UUID requesterId) {
-        Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new ResourceNotFoundException("Message not found with ID: " + messageId));
-
-        if (message.getChannel() != null) {
-            channelService.getChannelById(message.getChannel().getId(), requesterId);
-        } else {
-            throw new ResourceNotFoundException("Message is not associated with a channel");
-        }
-
-        return MessageResponse.from(message);
-    }
-
-    @Override
     @Transactional
     public MessageResponse editMessage(UUID messageId, EditMessageRequest request, UUID requesterId) {
         Message message = messageRepository.findById(messageId)
@@ -127,7 +112,3 @@ public class MessageServiceImpl implements MessageService {
         messageRepository.delete(message);
     }
 }
-
-
-
-

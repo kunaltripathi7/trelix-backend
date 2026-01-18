@@ -18,9 +18,14 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
     Optional<RefreshToken> findByTokenHash(String tokenHash);
 
     @Modifying
-    @Transactional // just a safety net if service has it then this is ignored
+    @Transactional
     @Query("Update RefreshToken SET revoked=true WHERE familyId = ?1")
     void revokeAllRefreshTokens(UUID familyId);
+
+    @Modifying
+    @Transactional
+    @Query("Update RefreshToken SET revoked=true WHERE user.id = ?1")
+    void revokeAllByUserId(UUID userId);
 
     @Modifying
     @Transactional

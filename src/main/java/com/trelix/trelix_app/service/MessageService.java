@@ -12,13 +12,7 @@ public interface MessageService {
 
     PagedMessageResponse getMessages(UUID channelId, int page, int size, UUID requesterId);
 
-    MessageResponse getMessageById(UUID messageId, UUID requesterId);
-
     MessageResponse editMessage(UUID messageId, EditMessageRequest request, UUID requesterId);
 
     void deleteMessage(UUID messageId, UUID requesterId);
 }
-
-
-
-

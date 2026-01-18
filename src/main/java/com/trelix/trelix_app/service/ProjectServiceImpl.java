@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -180,7 +181,8 @@ public class ProjectServiceImpl implements ProjectService {
                                 NotificationType.PROJECT_INVITE,
                                 "Project Invite",
                                 "You have been added to project: " + project.getName(),
-                                projectId));
+                                projectId,
+                                Map.of("projectName", project.getName())));
 
                 return ProjectMemberResponse.from(savedProjectMember);
         }
@@ -243,7 +245,3 @@ public class ProjectServiceImpl implements ProjectService {
                 projectMemberRepository.delete(projectMember);
         }
 }
-
-
-
-

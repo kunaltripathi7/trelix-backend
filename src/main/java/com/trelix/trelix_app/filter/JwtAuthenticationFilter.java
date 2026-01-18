@@ -1,6 +1,7 @@
 package com.trelix.trelix_app.filter;
 
 import com.trelix.trelix_app.service.CustomUserDetailsService;
+import com.trelix.trelix_app.service.TokenBlacklistService;
 import com.trelix.trelix_app.util.JwtUtil;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -26,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(
@@ -37,13 +39,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
-        // latency -> tradeoff
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         jwt = authHeader.substring(7);
+
+        if (tokenBlacklistService.isBlacklisted(jwt)) {
+            log.debug("Token is blacklisted");
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         try {
             userEmail = jwtUtil.extractEmail(jwt);

@@ -1,12 +1,13 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.common.CommentDTO;
-import com.trelix.trelix_app.dto.response.UserResponse;
+import com.trelix.trelix_app.dto.request.CreateCommentRequest;
+import com.trelix.trelix_app.dto.request.UpdateCommentRequest;
+import com.trelix.trelix_app.dto.response.CommentResponse;
 import com.trelix.trelix_app.entity.Comment;
+import com.trelix.trelix_app.entity.Message;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.EntityType;
-import com.trelix.trelix_app.enums.ErrorCode;
-import com.trelix.trelix_app.exception.InvalidRequestException;
+
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.CommentRepository;
 import com.trelix.trelix_app.repository.TaskRepository;
@@ -22,7 +23,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
 
@@ -31,59 +31,65 @@ public class CommentServiceImpl implements CommentService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final AuthorizationService authorizationService;
+    private final ChannelService channelService;
+    private final WebSocketService webSocketService;
 
     @Override
-    public CommentDTO createComment(CommentDTO commentDTO, UUID userId) {
+    public CommentResponse createComment(CreateCommentRequest request, UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         EntityType entityType = null;
         UUID entityId = null;
 
-        if (commentDTO.getTaskId() != null) {
+        if (request.getTaskId() != null) {
             entityType = EntityType.TASK;
-            entityId = commentDTO.getTaskId();
+            entityId = request.getTaskId();
             authorizationService.verifyTaskReadAccess(entityId, userId);
-        } else if (commentDTO.getMessageId() != null) {
-            entityType = EntityType.MESSAGE;
-            entityId = commentDTO.getMessageId();
-            final UUID messageId = entityId;
-            var message = messageRepository.findById(messageId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Message not found with id: " + messageId));
         } else {
-            throw new InvalidRequestException("A comment must be associated with either a task or a message.",
-                    ErrorCode.INVALID_INPUT);
+            entityType = EntityType.MESSAGE;
+            entityId = request.getMessageId();
+            final UUID messageId = entityId;
+            Message message = messageRepository.findById(messageId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Message not found with id: " + messageId));
+            if (message.getChannel() != null) {
+                channelService.verifyChannelAccess(message.getChannel().getId(), userId);
+            }
         }
 
         Comment comment = Comment.builder()
                 .entityType(entityType)
                 .entityId(entityId)
                 .user(user)
-                .content(commentDTO.getContent())
+                .content(request.getContent())
                 .build();
 
         Comment saved = commentRepository.save(comment);
-        return toCommentDTO(saved);
+
+        broadcastCommentEvent(saved, "COMMENT_ADDED");
+        return CommentResponse.from(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CommentDTO> getCommentsForTask(UUID taskId, UUID userId) {
+    public List<CommentResponse> getCommentsForTask(UUID taskId, UUID userId) {
         authorizationService.verifyTaskReadAccess(taskId, userId);
         List<Comment> comments = commentRepository.findByEntityTypeAndEntityIdOrderByCreatedAtAsc(EntityType.TASK,
                 taskId);
-        return comments.stream().map(this::toCommentDTO).collect(Collectors.toList());
+        return comments.stream().map(CommentResponse::from).collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CommentDTO> getCommentsForMessage(UUID messageId, UUID userId) {
-        var message = messageRepository.findById(messageId)
+    public List<CommentResponse> getCommentsForMessage(UUID messageId, UUID userId) {
+        Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new ResourceNotFoundException("Message not found with id: " + messageId));
-        // Note: Channel access verification would need to be added
+        if (message.getChannel() != null) {
+            channelService.verifyChannelAccess(message.getChannel().getId(), userId);
+        }
         List<Comment> comments = commentRepository.findByEntityTypeAndEntityIdOrderByCreatedAtAsc(EntityType.MESSAGE,
                 messageId);
-        return comments.stream().map(this::toCommentDTO).collect(Collectors.toList());
+        return comments.stream().map(CommentResponse::from).collect(Collectors.toList());
     }
 
     @Override
@@ -94,7 +100,7 @@ public class CommentServiceImpl implements CommentService {
         boolean isOwner = comment.getUser().getId().equals(userId);
 
         if (!isOwner) {
-            // Check admin access based on entity type
+            // checking admin access based on entity type
             if (comment.getEntityType() == EntityType.TASK) {
                 try {
                     authorizationService.verifyTaskWriteAccess(
@@ -105,35 +111,52 @@ public class CommentServiceImpl implements CommentService {
                     throw new AccessDeniedException("You do not have permission to delete this comment.");
                 }
             } else {
-                // For messages, would need channel admin check
-                throw new AccessDeniedException("You do not have permission to delete this comment.");
+                // checking if user is admin/owner of the channel
+                Message message = messageRepository.findById(comment.getEntityId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Message not found"));
+                if (message.getChannel() != null) {
+                    try {
+                        channelService.verifyChannelAdmin(message.getChannel().getId(), userId);
+                    } catch (AccessDeniedException e) {
+                        throw new AccessDeniedException("You do not have permission to delete this comment.");
+                    }
+                } else {
+                    throw new AccessDeniedException("You do not have permission to delete this comment.");
+                }
             }
         }
 
         commentRepository.delete(comment);
+        broadcastCommentEvent(comment, "COMMENT_DELETED");
     }
 
-    private CommentDTO toCommentDTO(Comment comment) {
-        UserResponse userResponse = new UserResponse(
-                comment.getUser().getId(),
-                comment.getUser().getName(),
-                comment.getUser().getEmail(),
-                comment.getUser().getCreatedAt());
+    @Override
+    public CommentResponse updateComment(UUID commentId, UpdateCommentRequest request, UUID userId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found with id: " + commentId));
 
-        UUID taskId = comment.getEntityType() == EntityType.TASK ? comment.getEntityId() : null;
-        UUID messageId = comment.getEntityType() == EntityType.MESSAGE ? comment.getEntityId() : null;
+        if (!comment.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to edit this comment.");
+        }
 
-        return CommentDTO.builder()
-                .id(comment.getId())
-                .taskId(taskId)
-                .messageId(messageId)
-                .user(userResponse)
-                .content(comment.getContent())
-                .createdAt(comment.getCreatedAt())
-                .build();
+        comment.setContent(request.getContent());
+        Comment updatedComment = commentRepository.save(comment);
+
+        broadcastCommentEvent(updatedComment, "COMMENT_UPDATED");
+
+        return CommentResponse.from(updatedComment);
+    }
+
+    private void broadcastCommentEvent(Comment comment, String eventType) {
+        if (comment.getEntityType() == EntityType.MESSAGE) {
+            messageRepository.findById(comment.getEntityId()).ifPresent(message -> {
+                if (message.getChannel() != null) {
+                    webSocketService.broadcastEvent(
+                            message.getChannel().getId(),
+                            eventType,
+                            CommentResponse.from(comment));
+                }
+            });
+        }
     }
 }
-
-
-
-

@@ -6,6 +6,7 @@ import com.trelix.trelix_app.dto.response.ChannelMemberResponse;
 import com.trelix.trelix_app.dto.response.ChannelResponse;
 import com.trelix.trelix_app.dto.request.CreateChannelRequest;
 import com.trelix.trelix_app.dto.request.UpdateChannelRequest;
+import com.trelix.trelix_app.enums.ChannelType;
 
 import java.util.List;
 import java.util.UUID;
@@ -15,7 +16,7 @@ public interface ChannelService {
 
     ChannelResponse startDirectMessage(UUID otherUserId, UUID requesterId);
 
-    List<ChannelResponse> getChannels(UUID teamId, UUID projectId, String type, UUID requesterId);
+    List<ChannelResponse> getChannels(UUID teamId, UUID projectId, ChannelType type, UUID requesterId);
 
     ChannelDetailResponse getChannelById(UUID channelId, UUID requesterId);
 
@@ -28,4 +29,8 @@ public interface ChannelService {
     ChannelMemberResponse addMember(UUID channelId, AddChannelMemberRequest request, UUID requesterId);
 
     void removeMember(UUID channelId, UUID userId, UUID requesterId);
+
+    void verifyChannelAccess(UUID channelId, UUID userId);
+
+    void verifyChannelAdmin(UUID channelId, UUID userId);
 }

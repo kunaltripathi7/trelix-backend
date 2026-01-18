@@ -45,7 +45,7 @@ public class CloudinaryService {
     }
 
     public String extractPublicId(String url) {
-        Pattern pattern = Pattern.compile(".*/upload/(?:v\\d+/)?([^\\.]+).*");
+        Pattern pattern = Pattern.compile(".*/upload/(?:v\\d+/)?(.*)");
         Matcher matcher = pattern.matcher(url);
         if (matcher.matches()) {
             return matcher.group(1);
@@ -59,4 +59,17 @@ public class CloudinaryService {
                 ErrorCode.EXTERNAL_SYSTEM_FAILURE,
                 t);
     }
+
+    public String generateDownloadUrl(String publicId, String resourceType) {
+
+        String idToUse = publicId;
+
+        return cloudinary.url()
+                .resourceType(resourceType)
+                .secure(true)
+                .signed(true)
+                .transformation(new com.cloudinary.Transformation<>().flags("attachment"))
+                .generate(idToUse);
+    }
+
 }

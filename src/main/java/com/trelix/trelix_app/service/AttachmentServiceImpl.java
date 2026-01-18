@@ -6,12 +6,14 @@ import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.EntityType;
 import com.trelix.trelix_app.enums.ErrorCode;
 import com.trelix.trelix_app.exception.BadRequestException;
-import com.trelix.trelix_app.exception.ForbiddenException;
+
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.AttachmentRepository;
 import com.trelix.trelix_app.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,13 +24,13 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AttachmentServiceImpl implements AttachmentService {
 
     private final AttachmentRepository attachmentRepository;
     private final CloudinaryService cloudinaryService;
     private final UserRepository userRepository;
-    private final TaskService taskService;
-    private final MessageService messageService;
+    private final AuthorizationService authorizationService;
 
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024L; // 10MB
     private static final List<String> ALLOWED_MIME_TYPES = List.of(
@@ -36,14 +38,14 @@ public class AttachmentServiceImpl implements AttachmentService {
             "application/pdf",
             "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/zip", "application/x-zip-compressed");
+            "application/zip", "application/x-zip-compressed", "application/octet-stream");
 
     @Override
     @Transactional
     public AttachmentResponse uploadAttachment(MultipartFile file, EntityType entityType, UUID entityId,
             UUID uploaderId) {
         validateFile(file);
-        verifyEntityAccess(entityType, entityId, uploaderId);
+        authorizationService.verifyEntityAccess(entityType, entityId, uploaderId);
 
         User uploader = userRepository.findById(uploaderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Uploader not found"));
@@ -69,7 +71,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     @Override
     @Transactional(readOnly = true)
     public List<AttachmentResponse> getAttachmentsByEntity(EntityType entityType, UUID entityId, UUID requesterId) {
-        verifyEntityAccess(entityType, entityId, requesterId);
+        authorizationService.verifyEntityAccess(entityType, entityId, requesterId);
 
         List<Attachment> attachments = attachmentRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc(entityType,
                 entityId);
@@ -87,7 +89,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         Attachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment not found with ID: " + attachmentId));
 
-        verifyEntityAccess(attachment.getEntityType(), attachment.getEntityId(), requesterId);
+        authorizationService.verifyEntityAccess(attachment.getEntityType(), attachment.getEntityId(), requesterId);
 
         User uploader = userRepository.findById(attachment.getUploadedBy())
                 .orElseThrow(() -> new ResourceNotFoundException("Uploader not found for attachment"));
@@ -101,8 +103,27 @@ public class AttachmentServiceImpl implements AttachmentService {
         Attachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment not found with ID: " + attachmentId));
 
-        verifyEntityAccess(attachment.getEntityType(), attachment.getEntityId(), requesterId);
-        return attachment.getUrl();
+        authorizationService.verifyEntityAccess(attachment.getEntityType(), attachment.getEntityId(), requesterId);
+
+        try {
+            String fullPublicId = cloudinaryService.extractPublicId(attachment.getUrl());
+            String resourceType = determineResourceType(attachment.getFileType());
+            String generatedUrl = cloudinaryService.generateDownloadUrl(fullPublicId, resourceType);
+            log.info("Generating Cloudinary URL. PublicID: {}, Type: {}, URL: {}", fullPublicId, resourceType,
+                    generatedUrl);
+            return generatedUrl;
+        } catch (Exception e) {
+            log.warn("Failed to generate Cloudinary download URL, falling back to stored URL: {}", e.getMessage());
+            return attachment.getUrl();
+        }
+    }
+
+    private String determineResourceType(String mimeType) {
+        // cloudinary treats pdf as image
+        if (mimeType.startsWith("image/") || mimeType.equals("application/pdf")) {
+            return "image";
+        }
+        return "raw";
     }
 
     @Override
@@ -111,13 +132,13 @@ public class AttachmentServiceImpl implements AttachmentService {
         Attachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment not found with ID: " + attachmentId));
 
-        verifyDeletePermission(attachment, requesterId);
+        authorizationService.verifyAttachmentDeletion(attachment, requesterId);
 
         try {
             String publicId = cloudinaryService.extractPublicId(attachment.getUrl());
             cloudinaryService.deleteFile(publicId);
         } catch (Exception e) {
-            System.err.println("Failed to delete file from Cloudinary: " + e.getMessage());
+            log.error("Failed to delete file from Cloudinary: {}", e.getMessage());
         }
 
         attachmentRepository.delete(attachment);
@@ -149,23 +170,4 @@ public class AttachmentServiceImpl implements AttachmentService {
         return filename.replaceAll("[^a-zA-Z0-9.\\-_]", "_");
     }
 
-    private void verifyEntityAccess(EntityType entityType, UUID entityId, UUID userId) {
-        try {
-            switch (entityType) {
-                case TASK -> taskService.getTaskById(entityId, userId);
-                case MESSAGE -> messageService.getMessageById(entityId, userId);
-                default -> throw new BadRequestException("Unsupported entity type for attachment: " + entityType,
-                        ErrorCode.INVALID_INPUT);
-            }
-        } catch (ResourceNotFoundException e) {
-            throw new ForbiddenException("You do not have access to this entity.", ErrorCode.FORBIDDEN);
-        }
-    }
-
-    private void verifyDeletePermission(Attachment attachment, UUID requesterId) {
-        if (attachment.getUploadedBy().equals(requesterId)) {
-            return;
-        }
-        throw new ForbiddenException("You do not have permission to delete this attachment.", ErrorCode.FORBIDDEN);
-    }
 }

@@ -6,6 +6,7 @@ import com.trelix.trelix_app.dto.response.ChannelMemberResponse;
 import com.trelix.trelix_app.dto.response.ChannelResponse;
 import com.trelix.trelix_app.dto.request.CreateChannelRequest;
 import com.trelix.trelix_app.dto.request.UpdateChannelRequest;
+import com.trelix.trelix_app.enums.ChannelType;
 import com.trelix.trelix_app.security.CustomUserDetails;
 import com.trelix.trelix_app.service.ChannelService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,7 +55,7 @@ public class ChannelController {
     public ResponseEntity<List<ChannelResponse>> getChannels(
             @RequestParam(required = false) UUID teamId,
             @RequestParam(required = false) UUID projectId,
-            @RequestParam(required = false) String type,
+            @RequestParam(required = false) ChannelType type,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
         List<ChannelResponse> channels = channelService.getChannels(teamId, projectId, type, currentUser.getId());
         return ResponseEntity.ok(channels);

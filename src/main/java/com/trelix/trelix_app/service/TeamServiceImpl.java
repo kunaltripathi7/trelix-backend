@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -40,7 +41,7 @@ public class TeamServiceImpl implements TeamService {
         public Team getTeamById(UUID id) {
                 return teamRepository.findById(id)
                                 .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Team not founc with the given Id " + id));
+                                                "Team not found with the given Id " + id));
         }
 
         @Override
@@ -159,7 +160,8 @@ public class TeamServiceImpl implements TeamService {
                                 NotificationType.TEAM_INVITE,
                                 "Team Invite",
                                 "You have been added to team: " + team.getName(),
-                                teamId));
+                                teamId,
+                                Map.of("teamName", team.getName())));
 
                 return TeamMemberResponse.from(newTeamUser);
         }

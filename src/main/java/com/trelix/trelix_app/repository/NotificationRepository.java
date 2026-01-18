@@ -15,13 +15,14 @@ import java.util.UUID;
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
-    Page<Notification> findByNotifierIdOrderByCreatedAtDesc(UUID notifierId, Pageable pageable);
-
-    Page<Notification> findByNotifierIdAndIsReadOrderByCreatedAtDesc(UUID notifierId, boolean isRead, Pageable pageable);
-
-    Page<Notification> findByNotifierIdAndTypeOrderByCreatedAtDesc(UUID notifierId, NotificationType type, Pageable pageable);
-
-    Page<Notification> findByNotifierIdAndIsReadAndTypeOrderByCreatedAtDesc(UUID notifierId, boolean isRead, NotificationType type, Pageable pageable);
+    @Query("SELECT n FROM Notification n WHERE n.notifierId = :userId " +
+            "AND (:isRead IS NULL OR n.isRead = :isRead) " +
+            "AND (:type IS NULL OR n.type = :type)")
+    Page<Notification> findNotifications(
+            @Param("userId") UUID userId,
+            @Param("isRead") Boolean isRead,
+            @Param("type") NotificationType type,
+            Pageable pageable);
 
     long countByNotifierIdAndIsRead(UUID notifierId, boolean isRead);
 
@@ -32,7 +33,3 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     @Query("UPDATE Notification n SET n.isRead = true WHERE n.notifierId = :userId AND n.isRead = false")
     int markAllAsReadByUserId(@Param("userId") UUID userId);
 }
-
-
-
-

@@ -1,5 +1,6 @@
 package com.trelix.trelix_app.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.trelix.trelix_app.entity.Channel;
 import com.trelix.trelix_app.entity.ChannelMember;
 import java.time.LocalDateTime;
@@ -7,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ChannelDetailResponse(
         UUID id,
         UUID teamId,
@@ -19,7 +21,8 @@ public record ChannelDetailResponse(
         List<ChannelMemberResponse> members, // For ad-hoc only
         Integer memberCount // For team/project channels
 ) {
-    public static ChannelDetailResponse from(Channel channel, String teamName, String projectName, List<ChannelMember> channelMembers) {
+    public static ChannelDetailResponse from(Channel channel, String teamName, String projectName,
+            List<ChannelMember> channelMembers) {
         String channelType;
         if (channel.getProjectId() != null) {
             channelType = "PROJECT";
@@ -37,7 +40,7 @@ public record ChannelDetailResponse(
                     .map(ChannelMemberResponse::from)
                     .collect(Collectors.toList());
         } else {
-            count = channelMembers.size(); 
+            count = channelMembers.size();
         }
 
         return new ChannelDetailResponse(
@@ -50,11 +53,6 @@ public record ChannelDetailResponse(
                 channelType,
                 channel.getCreatedAt(),
                 memberResponses,
-                count
-        );
+                count);
     }
 }
-
-
-
-

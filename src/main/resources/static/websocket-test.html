@@ -24,6 +24,9 @@
         <div class="card">
             <h3>Connection</h3>
             <div class="input-row">
+                <input type="text" id="authToken" placeholder="JWT Token (Bearer will be added automatically)">
+            </div>
+            <div class="input-row">
                 <button id="connectBtn" class="primary" onclick="connect()">Connect</button>
                 <button id="disconnectBtn" class="danger" onclick="disconnect()" disabled>Disconnect</button>
             </div>
@@ -68,6 +71,18 @@
             <div class="input-row">
                 <input type="text" id="messageContent" placeholder="Type a message..." onkeypress="handleEnter(event)">
                 <button id="sendBtn" class="primary" onclick="sendMessage()" disabled>Send</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Thread (Comment)</h3>
+            <div class="input-row">
+                <input type="text" id="targetMessageId" placeholder="Target Message UUID (for Reply)">
+            </div>
+            <div class="input-row">
+                <input type="text" id="commentContent" placeholder="Type a comment..."
+                    onkeypress="handleCommentEnter(event)">
+                <button id="sendCommentBtn" class="primary" onclick="sendComment()">Post Comment</button>
             </div>
         </div>
 

@@ -10,13 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TeamRequest {
-    @NotBlank(message = "Team name is required")
-    private String name;
-
-    private String description;
+public class UpdateCommentRequest {
+    @NotBlank(message = "Content cannot be empty")
+    private String content;
 }
-
-
-
-

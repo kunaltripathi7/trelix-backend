@@ -37,15 +37,6 @@ public class MessageController {
         return ResponseEntity.ok(messages);
     }
 
-    @GetMapping("/{messageId}")
-    @Operation(summary = "Get message by ID", description = "Get a specific message by its ID")
-    public ResponseEntity<MessageResponse> getMessageById(
-            @PathVariable @NotNull UUID messageId,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
-        MessageResponse message = messageService.getMessageById(messageId, currentUser.getId());
-        return ResponseEntity.ok(message);
-    }
-
     @PutMapping("/{messageId}")
     @Operation(summary = "Edit message", description = "Edit message content. Only the sender can edit.")
     public ResponseEntity<MessageResponse> editMessage(

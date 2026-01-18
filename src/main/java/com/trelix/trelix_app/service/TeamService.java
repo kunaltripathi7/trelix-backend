@@ -2,7 +2,6 @@ package com.trelix.trelix_app.service;
 
 import com.trelix.trelix_app.dto.request.*;
 import com.trelix.trelix_app.dto.response.*;
-import com.trelix.trelix_app.dto.common.*;
 import com.trelix.trelix_app.entity.Team;
 import com.trelix.trelix_app.enums.TeamRole;
 
@@ -34,7 +33,3 @@ public interface TeamService {
     List<TeamMemberResponse> transferOwnership(UUID teamId, UUID newOwnerId, UUID requesterId);
 
 }
-
-
-
-

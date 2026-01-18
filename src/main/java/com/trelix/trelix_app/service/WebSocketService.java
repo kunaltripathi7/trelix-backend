@@ -20,6 +20,10 @@ public class WebSocketService {
         log.debug("Broadcast to channel: {}", destination);
     }
 
+    public void broadcastEvent(UUID channelId, String type, Object data) {
+        broadcastToChannel(channelId, java.util.Map.of("type", type, "data", data));
+    }
+
     public void sendNotificationToUser(UUID userId, Object notification) {
         String destination = "/topic/notifications." + userId;
         messagingTemplate.convertAndSend(destination, notification);

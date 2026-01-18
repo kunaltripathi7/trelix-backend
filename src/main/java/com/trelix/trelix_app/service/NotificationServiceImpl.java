@@ -1,6 +1,5 @@
 package com.trelix.trelix_app.service;
 
-import com.trelix.trelix_app.dto.request.CreateNotificationRequest;
 import com.trelix.trelix_app.dto.response.NotificationResponse;
 import com.trelix.trelix_app.dto.response.PagedNotificationResponse;
 import com.trelix.trelix_app.entity.Notification;
@@ -11,7 +10,10 @@ import com.trelix.trelix_app.exception.ForbiddenException;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.NotificationRepository;
 import com.trelix.trelix_app.repository.UserRepository;
+import com.trelix.trelix_app.service.notification.MessageGenerator;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,49 +24,33 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final List<MessageGenerator> messageGenerators;
 
-    @Override
-    @Transactional
-    public NotificationResponse createNotification(CreateNotificationRequest request) {
-        User actor = userRepository.findById(request.actorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Actor not found with ID: " + request.actorId()));
+    private Map<NotificationType, MessageGenerator> generatorRegistry;
 
-        Notification notification = Notification.builder()
-                .notifierId(request.notifierId())
-                .actorId(request.actorId())
-                .type(request.type())
-                .referenceId(request.referenceId())
-                .metadata(request.metadata())
-                .isRead(false)
-                .build();
-
-        notification = notificationRepository.save(notification);
-        return toNotificationResponse(notification, actor.getName());
+    @PostConstruct
+    public void initRegistry() {
+        generatorRegistry = messageGenerators.stream()
+                .collect(Collectors.toMap(MessageGenerator::getType, Function.identity()));
+        log.info("Initialized {} message generators", generatorRegistry.size());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PagedNotificationResponse getNotifications(UUID userId, Boolean isRead, NotificationType type, int page, int size) {
+    public PagedNotificationResponse getNotifications(UUID userId, Boolean isRead, NotificationType type, int page,
+            int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Notification> notificationPage;
-
-        if (isRead != null && type != null) {
-            notificationPage = notificationRepository.findByNotifierIdAndIsReadAndTypeOrderByCreatedAtDesc(userId, isRead, type, pageable);
-        } else if (isRead != null) {
-            notificationPage = notificationRepository.findByNotifierIdAndIsReadOrderByCreatedAtDesc(userId, isRead, pageable);
-        } else if (type != null) {
-            notificationPage = notificationRepository.findByNotifierIdAndTypeOrderByCreatedAtDesc(userId, type, pageable);
-        } else {
-            notificationPage = notificationRepository.findByNotifierIdOrderByCreatedAtDesc(userId, pageable);
-        }
+        Page<Notification> notificationPage = notificationRepository.findNotifications(userId, isRead, type, pageable);
 
         List<NotificationResponse> notificationResponses = notificationPage.getContent().stream()
                 .map(notification -> {
@@ -80,22 +66,7 @@ public class NotificationServiceImpl implements NotificationService {
                 notificationPage.getNumber(),
                 notificationPage.getTotalPages(),
                 notificationPage.getTotalElements(),
-                unreadCount
-        );
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public NotificationResponse getNotificationById(UUID notificationId, UUID requesterId) {
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with ID: " + notificationId));
-
-        verifyOwnership(notification.getId(), requesterId);
-
-        User actor = userRepository.findById(notification.getActorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Actor not found for notification"));
-
-        return toNotificationResponse(notification, actor.getName());
+                unreadCount);
     }
 
     @Override
@@ -114,20 +85,6 @@ public class NotificationServiceImpl implements NotificationService {
 
         if (!notification.isRead()) {
             notification.setRead(true);
-            notificationRepository.save(notification);
-        }
-    }
-
-    @Override
-    @Transactional
-    public void markAsUnread(UUID notificationId, UUID userId) {
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with ID: " + notificationId));
-
-        verifyOwnership(notification.getId(), userId);
-
-        if (notification.isRead()) {
-            notification.setRead(false);
             notificationRepository.save(notification);
         }
     }
@@ -166,28 +123,17 @@ public class NotificationServiceImpl implements NotificationService {
                 message,
                 notification.getMetadata(),
                 notification.isRead(),
-                notification.getCreatedAt()
-        );
+                notification.getCreatedAt());
     }
 
     private String generateMessage(NotificationType type, String actorName, Map<String, String> metadata) {
         Map<String, String> safeMetadata = metadata != null ? metadata : Map.of();
 
-        return switch (type) {
-            case TASK_ASSIGNED -> actorName + " assigned you to task: " + safeMetadata.getOrDefault("taskTitle", "N/A");
-            case MESSAGE_MENTION -> actorName + " mentioned you in a message";
-            case TEAM_INVITE -> actorName + " invited you to team: " + safeMetadata.getOrDefault("teamName", "N/A");
-            case TASK_UPDATED -> actorName + " updated task: " + safeMetadata.getOrDefault("taskTitle", "N/A");
-            case TASK_COMPLETED -> actorName + " completed task: " + safeMetadata.getOrDefault("taskTitle", "N/A");
-            case TASK_STATUS_CHANGED -> actorName + " changed status of task: " + safeMetadata.getOrDefault("taskTitle", "N/A");
-            case MESSAGE_REPLY -> actorName + " replied to your message";
-            case PROJECT_INVITE -> actorName + " invited you to project: " + safeMetadata.getOrDefault("projectName", "N/A");
-            case CHANNEL_INVITE -> actorName + " invited you to channel: " + safeMetadata.getOrDefault("channelName", "N/A");
-            case EVENT_REMINDER -> "Reminder: " + safeMetadata.getOrDefault("eventTitle", "N/A");
-        };
+        MessageGenerator generator = generatorRegistry.get(type);
+        if (generator == null) {
+            log.warn("No generator found for notification type: {}", type);
+            return type.getDescription();
+        }
+        return generator.generate(actorName, safeMetadata);
     }
 }
-
-
-
-

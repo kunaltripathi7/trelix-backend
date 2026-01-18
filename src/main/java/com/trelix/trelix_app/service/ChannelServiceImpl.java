@@ -12,6 +12,7 @@ import com.trelix.trelix_app.entity.Project;
 import com.trelix.trelix_app.entity.Team;
 import com.trelix.trelix_app.entity.User;
 import com.trelix.trelix_app.enums.ChannelRole;
+import com.trelix.trelix_app.enums.ChannelType;
 import com.trelix.trelix_app.exception.ResourceNotFoundException;
 import com.trelix.trelix_app.repository.ChannelMemberRepository;
 import com.trelix.trelix_app.repository.ChannelRepository;
@@ -44,23 +45,36 @@ public class ChannelServiceImpl implements ChannelService {
         Project project = null;
 
         if (isProjectChannel) {
-            authorizationService.verifyProjectAdmin(request.projectId(), creatorId);
             project = projectRepository.findById(request.projectId())
                     .orElseThrow(() -> new ResourceNotFoundException("Project not found with the given ID"));
+            authorizationService.verifyProjectAdmin(request.projectId(), creatorId);
             team = project.getTeam();
         } else {
-            authorizationService.verifyTeamAdmin(request.teamId(), creatorId);
             team = teamRepository.findById(request.teamId())
                     .orElseThrow(() -> new ResourceNotFoundException("Team not found with the given ID"));
+            authorizationService.verifyTeamAdmin(request.teamId(), creatorId);
         }
 
         Channel channel = Channel.builder()
                 .team(team)
+                .teamId(team.getId())
                 .project(project)
+                .projectId(project != null ? project.getId() : null)
                 .name(request.name())
                 .build();
 
-        return ChannelResponse.from(channelRepository.save(channel));
+        Channel savedChannel = channelRepository.save(channel);
+
+        User creator = userService.findById(creatorId);
+        ChannelMember creatorMember = ChannelMember.builder()
+                .id(new ChannelMember.ChannelMemberId(savedChannel.getId(), creatorId))
+                .channel(savedChannel)
+                .user(creator)
+                .role(ChannelRole.OWNER)
+                .build();
+        channelMemberRepository.save(creatorMember);
+
+        return ChannelResponse.from(savedChannel);
     }
 
     @Override
@@ -74,7 +88,7 @@ public class ChannelServiceImpl implements ChannelService {
         User otherUser = userService.findById(otherUserId);
 
         Channel existingDm = channelRepository.findExistingDmBetweenUsers(requesterId, otherUserId);
-        if (existingDm != null) {
+        if (existingDm != null) { // idempotent
             return ChannelResponse.from(existingDm);
         }
 
@@ -106,7 +120,7 @@ public class ChannelServiceImpl implements ChannelService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ChannelResponse> getChannels(UUID teamId, UUID projectId, String type, UUID requesterId) {
+    public List<ChannelResponse> getChannels(UUID teamId, UUID projectId, ChannelType type, UUID requesterId) {
         if (projectId != null) {
             authorizationService.verifyProjectMembership(projectId, requesterId);
             return channelRepository.findByProjectId(projectId).stream()
@@ -117,7 +131,7 @@ public class ChannelServiceImpl implements ChannelService {
             return channelRepository.findByTeamIdAndProjectIdIsNull(teamId).stream()
                     .map(ChannelResponse::from)
                     .collect(Collectors.toList());
-        } else if ("DIRECT".equalsIgnoreCase(type) || "AD_HOC".equalsIgnoreCase(type)) {
+        } else if (type == ChannelType.DIRECT) {
             return channelRepository.findAdHocChannelsByUserId(requesterId).stream()
                     .map(ChannelResponse::from)
                     .collect(Collectors.toList());
@@ -194,15 +208,6 @@ public class ChannelServiceImpl implements ChannelService {
         Channel channel = channelRepository.findById(channelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Channel not found with ID: " + channelId));
 
-        // Only ad-hoc channels typically support explicit member management this way,
-        // OR adding team members to private channels if that feature existed.
-        // For now, assuming this is mainly for ad-hoc or specifically adding someone to
-        // a channel they don't have auto-access to?
-        // But the schema implies team/project channels don't use ChannelMember table
-        // for access (implicit).
-        // So this is strictly for AD_HOC channels or if we want to add 'extra' members?
-        // Let's restrict to AD_HOC for now or require admin.
-
         verifyChannelAdmin(channel, requesterId);
 
         if (channelMemberRepository.existsByIdChannelIdAndIdUserId(channelId, request.userId())) {
@@ -229,12 +234,35 @@ public class ChannelServiceImpl implements ChannelService {
 
         verifyChannelAdmin(channel, requesterId);
 
-        // Cannot remove self if owner, etc. logic can be added here.
-
         ChannelMember member = channelMemberRepository.findByIdChannelIdAndIdUserId(channelId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found in channel"));
 
+        if (member.getRole() == ChannelRole.OWNER) {
+            long ownerCount = channelMemberRepository.findByIdChannelId(channelId).stream()
+                    .filter(m -> m.getRole() == ChannelRole.OWNER)
+                    .count();
+            if (ownerCount <= 1) {
+                throw new IllegalArgumentException("Cannot remove the last owner of the channel");
+            }
+        }
+
         channelMemberRepository.delete(member);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void verifyChannelAccess(UUID channelId, UUID userId) {
+        Channel channel = channelRepository.findById(channelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Channel not found with ID: " + channelId));
+        verifyChannelAccess(channel, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void verifyChannelAdmin(UUID channelId, UUID userId) {
+        Channel channel = channelRepository.findById(channelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Channel not found with ID: " + channelId));
+        verifyChannelAdmin(channel, userId);
     }
 
     private void verifyChannelAccess(Channel channel, UUID userId) {

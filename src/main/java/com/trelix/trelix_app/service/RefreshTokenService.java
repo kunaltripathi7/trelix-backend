@@ -11,4 +11,6 @@ public interface RefreshTokenService {
     RefreshResult validateAndRotate(String token);
 
     void revokeFamily(UUID familyId);
+
+    void revokeAllUserTokens(UUID userId);
 }

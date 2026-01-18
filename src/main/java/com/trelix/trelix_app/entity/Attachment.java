@@ -27,29 +27,25 @@ public class Attachment {
     private String fileName;
 
     @Column(nullable = false)
-    private String fileType; // MIME type
+    private String fileType;
 
     @Column(nullable = false)
-    private Long fileSize; // in bytes
+    private Long fileSize;
 
     @Column(nullable = false)
-    private String url; // Cloudinary public URL
+    private String url;
 
     @Column(nullable = false)
-    private UUID uploadedBy; // User ID of the uploader
+    private UUID uploadedBy;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EntityType entityType;
 
     @Column(nullable = false)
-    private UUID entityId; // ID of the associated entity (Task, Message, etc.)
+    private UUID entityId;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 }
-
-
-
-
