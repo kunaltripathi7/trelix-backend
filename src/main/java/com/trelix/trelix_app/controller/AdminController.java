@@ -17,7 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/v1/admin")
 @RequiredArgsConstructor
-@Tag(name = "Admin")
+@Tag(name = "Admin", description = "Administrative operations (super-admin only)")
 public class AdminController {
 
     private final AdminService adminService;

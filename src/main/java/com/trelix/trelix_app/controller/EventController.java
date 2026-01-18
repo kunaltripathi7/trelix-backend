@@ -28,7 +28,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("/v1/events")
 @RequiredArgsConstructor
 @Validated
-@Tag(name = "Events")
+@Tag(name = "Events", description = "Calendar events for teams, projects, and tasks")
 public class EventController {
 
     private final EventService eventService;

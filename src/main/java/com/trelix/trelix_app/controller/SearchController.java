@@ -30,7 +30,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("/v1/search")
 @Validated
 @RequiredArgsConstructor
-@Tag(name = "Search")
+@Tag(name = "Search", description = "Global and entity-specific search with relevance scoring")
 public class SearchController {
 
     private final SearchService searchService;

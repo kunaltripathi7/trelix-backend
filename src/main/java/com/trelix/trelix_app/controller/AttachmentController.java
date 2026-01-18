@@ -24,7 +24,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("/v1/attachments")
 @RequiredArgsConstructor
 @Validated
-@Tag(name = "Attachments")
+@Tag(name = "Attachments", description = "File uploads for tasks and messages via Cloudinary")
 public class AttachmentController {
 
     private final AttachmentService attachmentService;
