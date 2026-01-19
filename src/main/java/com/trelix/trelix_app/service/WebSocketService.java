@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -12,7 +13,7 @@ import java.util.UUID;
 @Slf4j
 public class WebSocketService {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final SimpMessagingTemplate messagingTemplate; // server initiated pushes
 
     public void broadcastToChannel(UUID channelId, Object payload) {
         String destination = "/topic/channel." + channelId;
@@ -21,7 +22,7 @@ public class WebSocketService {
     }
 
     public void broadcastEvent(UUID channelId, String type, Object data) {
-        broadcastToChannel(channelId, java.util.Map.of("type", type, "data", data));
+        broadcastToChannel(channelId, Map.of("type", type, "data", data));
     }
 
     public void sendNotificationToUser(UUID userId, Object notification) {

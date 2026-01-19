@@ -36,12 +36,14 @@ public class NotificationServiceImpl implements NotificationService {
     private final UserRepository userRepository;
     private final List<MessageGenerator> messageGenerators;
 
+    // fast lookup
     private Map<NotificationType, MessageGenerator> generatorRegistry;
 
     @PostConstruct
     public void initRegistry() {
         generatorRegistry = messageGenerators.stream()
-                .collect(Collectors.toMap(MessageGenerator::getType, Function.identity()));
+                .collect(Collectors.toMap(MessageGenerator::getType, Function.identity())); // the object becmoes the
+                                                                                            // value
         log.info("Initialized {} message generators", generatorRegistry.size());
     }
 
